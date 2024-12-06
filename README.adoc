@@ -1,0 +1,5 @@
+
+== Diagram
+
+
+image::docs/imgs/diagram.png[Class Diagram]
