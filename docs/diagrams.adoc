@@ -1,0 +1,21 @@
+== Diagram
+
+[plantuml, diagram]
+----
+@startuml
+!theme plain
+top to bottom direction
+skinparam linetype ortho
+
+class Builder
+interface ConnectionFactory << interface >>
+class DatabaseConfiguration
+class Main
+class MySQLConnectionFactory
+class PostgreSQLConnectionFactory
+
+Builder                      +-[#820000,plain]-  DatabaseConfiguration
+MySQLConnectionFactory       -[#008200,dashed]-^  ConnectionFactory
+PostgreSQLConnectionFactory  -[#008200,dashed]-^  ConnectionFactory
+@enduml
+----
