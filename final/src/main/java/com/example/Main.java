@@ -1,5 +1,10 @@
 package com.example;
 
+import com.example.connection.ConnectionFactory;
+import com.example.connection.DatabaseSession;
+import com.example.connection.MySQLConnectionFactory;
+import com.example.entity.GenericDao;
+
 import java.sql.SQLException;
 import java.util.List;
 import java.util.Scanner;
@@ -7,12 +12,12 @@ import java.util.Scanner;
 public class Main {
     public static void main(String[] args) {
         // Create the MySQL connection factory using the default configuration
-        MySQLConnectionFactory factory = MySQLConnectionFactory.createDefault(
+        ConnectionFactory factory = MySQLConnectionFactory.createDefault(
                 "localhost", // host
                 "3306",      // port
-                "damframework", // database
-                "root",      // username
-                "ducanh123"  // password
+                "ORMX", // database
+                "root",   // username
+                "mysql"  // password
         );
 
         try {
@@ -47,7 +52,7 @@ public class Main {
                             }
                         }
                         break;
-
+                            
                     case "5":
                         // Select users with WHERE, GROUP BY, and HAVING
                         System.out.print("Enter WHERE clause (or press Enter to skip): ");
@@ -78,6 +83,8 @@ public class Main {
 
                     // other cases...
                 }
+
+                scanner.close();
             }
 
         } catch (SQLException | IllegalAccessException | InstantiationException e) {

@@ -1,4 +1,4 @@
-package com.example;
+package com.example.connection;
 
 import java.sql.Connection;
 import java.sql.DriverManager;

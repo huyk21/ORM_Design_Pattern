@@ -1,5 +1,9 @@
 package com.example;
 
+import com.example.annotation.Column;
+import com.example.annotation.Table;
+import com.example.entity.BaseEntity;
+
 import java.lang.reflect.Field;
 
 @Table(name = "users") // Ensure that the @Table annotation is correct and corresponds to the "users" table in your database

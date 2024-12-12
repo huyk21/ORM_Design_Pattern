@@ -1,4 +1,8 @@
-package com.example;
+package com.example.entity;
+import com.example.annotation.Column;
+import com.example.annotation.Table;
+import com.example.connection.DatabaseSession;
+
 import java.lang.reflect.Field;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
@@ -8,8 +12,8 @@ import java.util.List;
 
 public class GenericDao<T extends BaseEntity> {
 
-    private DatabaseSession session;
-    private Class<T> clazz;
+    private final DatabaseSession session;
+    private final Class<T> clazz;
 
     public GenericDao(DatabaseSession session, Class<T> clazz) {
         this.session = session;
