@@ -23,6 +23,7 @@ public class MySQLConnectionFactory implements ConnectionFactory {
         return new MySQLConnectionFactory(config);
     }
 
+    // Create the connection using the configuration
     @Override
     public Connection createConnection() throws SQLException {
         return DriverManager.getConnection(
@@ -30,6 +31,7 @@ public class MySQLConnectionFactory implements ConnectionFactory {
                 config.toProperties());
     }
 
+    // Generate the connection URL
     @Override
     public String getConnectionURL() {
         return config.generateConnectionUrl("jdbc:mysql");
