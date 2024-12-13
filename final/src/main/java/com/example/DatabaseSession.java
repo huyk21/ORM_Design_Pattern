@@ -10,7 +10,7 @@ public class DatabaseSession {
     private Connection connection;
 
     // Constructor that accepts MySQLConnectionFactory instead of connection parameters
-    public DatabaseSession(MySQLConnectionFactory factory) throws SQLException {
+    public DatabaseSession(ConnectionFactory factory) throws SQLException {
         // Create the connection using the factory
         this.connection = factory.createConnection();
     }
