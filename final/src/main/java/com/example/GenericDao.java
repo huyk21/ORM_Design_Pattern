@@ -1,5 +1,9 @@
 package com.example;
 
+import com.example.annotation.Column;
+import com.example.annotation.Table;
+import com.example.connection.DatabaseSession;
+
 import java.lang.reflect.Field;
 import java.sql.ResultSet;
 import java.sql.SQLException;
