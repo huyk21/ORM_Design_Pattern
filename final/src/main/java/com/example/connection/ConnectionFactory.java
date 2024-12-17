@@ -5,6 +5,5 @@ import java.sql.SQLException;
 
 public interface ConnectionFactory {
     Connection createConnection() throws SQLException;
-
     String getConnectionURL();
 }

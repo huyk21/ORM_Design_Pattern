@@ -1,160 +1,141 @@
 package com.example.entity;
-import com.example.annotation.Column;
-import com.example.annotation.Table;
-import com.example.connection.DatabaseSession;
 
+import com.example.connection.DatabaseSession;
 import java.lang.reflect.Field;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Optional;
 
-public class GenericDao<T extends BaseEntity> {
-
+public class GenericDao<T> {
     private final DatabaseSession session;
-    private final Class<T> clazz;
+    private final Class<T> entityClass;
+    private final EntityMetadata metadata;
 
-    public GenericDao(DatabaseSession session, Class<T> clazz) {
+    public GenericDao(DatabaseSession session, Class<T> entityClass) {
         this.session = session;
-        this.clazz = clazz;
+        this.entityClass = entityClass;
+        this.metadata = new EntityMetadata(entityClass);
     }
 
-    // Create (Insert)
     public void save(T entity) throws SQLException, IllegalAccessException {
-        // Debug: Print the table name used for the insert
-        System.out.println("Table Name for Insert: " + entity.getTableName());  // Print table name
-
         StringBuilder sql = new StringBuilder("INSERT INTO ");
-        sql.append(entity.getTableName()).append(" (");
+        sql.append(metadata.getTableName()).append(" (");
         StringBuilder values = new StringBuilder();
 
-        // Get fields and values using reflection
-        Field[] fields = clazz.getDeclaredFields();
-        for (Field field : fields) {
-            field.setAccessible(true);
-            if (field.isAnnotationPresent(Column.class)) {
-                String columnName = entity.getColumnName(field);
-                sql.append(columnName).append(",");
-                values.append("'").append(field.get(entity)).append("',");
-            }
+        List<ColumnMetadata> columns = metadata.getColumns();
+        for (ColumnMetadata column : columns) {
+            sql.append(column.getColumnName()).append(",");
+            values.append("?,");
         }
 
-        // Remove trailing commas
         sql.setLength(sql.length() - 1);
         values.setLength(values.length() - 1);
-
         sql.append(") VALUES (").append(values).append(")");
 
-        // Execute the insert query
-        session.executeUpdate(sql.toString());
-    }
-
-   public void update(T entity) throws SQLException, IllegalAccessException {
-    // Debug: Print the table name used for the update
-    String tableName = getTableNameFromAnnotation();  // Get the table name
-    System.out.println("Table Name for Update: " + tableName);  // Print table name
-
-    StringBuilder sql = new StringBuilder("UPDATE ");
-    sql.append(tableName).append(" SET ");
-
-    // Get all fields and their values
-    Field[] fields = clazz.getDeclaredFields();
-    for (Field field : fields) {
-        field.setAccessible(true);
-        if (field.isAnnotationPresent(Column.class)) {
-            String columnName = entity.getColumnName(field);
-            sql.append(columnName).append(" = '").append(field.get(entity)).append("', ");
+        try (PreparedStatement stmt = session.getConnection().prepareStatement(sql.toString())) {
+            int paramIndex = 1;
+            for (ColumnMetadata column : columns) {
+                Field field = column.getField();
+                field.setAccessible(true);
+                stmt.setObject(paramIndex++, field.get(entity));
+            }
+            stmt.executeUpdate();
         }
     }
 
-    sql.setLength(sql.length() - 2); // Remove the last comma
+    public void update(T entity) throws SQLException, IllegalAccessException {
+        StringBuilder sql = new StringBuilder("UPDATE ");
+        sql.append(metadata.getTableName()).append(" SET ");
 
-    // Get the 'id' field dynamically (if exists)
-    Field idField = getIdField(clazz);
-    if (idField == null) {
-        throw new IllegalArgumentException("No id field found for class: " + clazz.getName());
+        List<ColumnMetadata> columns = metadata.getColumns();
+        for (ColumnMetadata column : columns) {
+            if (!column.isId()) {
+                sql.append(column.getColumnName()).append(" = ?,");
+            }
+        }
+        sql.setLength(sql.length() - 1);
+
+        ColumnMetadata idColumn = metadata.getIdColumn();
+        sql.append(" WHERE ").append(idColumn.getColumnName()).append(" = ?");
+
+        try (PreparedStatement stmt = session.getConnection().prepareStatement(sql.toString())) {
+            int paramIndex = 1;
+            for (ColumnMetadata column : columns) {
+                if (!column.isId()) {
+                    Field field = column.getField();
+                    field.setAccessible(true);
+                    stmt.setObject(paramIndex++, field.get(entity));
+                }
+            }
+            Field idField = idColumn.getField();
+            idField.setAccessible(true);
+            stmt.setObject(paramIndex, idField.get(entity));
+            stmt.executeUpdate();
+        }
     }
 
-    idField.setAccessible(true); // Make sure the id field is accessible
-    sql.append(" WHERE id = ?");
+    public void delete(Object id) throws SQLException {
+        String sql = "DELETE FROM " + metadata.getTableName() +
+                " WHERE " + metadata.getIdColumn().getColumnName() + " = ?";
+        try (PreparedStatement stmt = session.getConnection().prepareStatement(sql)) {
+            stmt.setObject(1, id);
+            stmt.executeUpdate();
+        }
+    }
 
-    // Execute the update query
-    PreparedStatement stmt = session.getConnection().prepareStatement(sql.toString());
-    stmt.setInt(1, (Integer) idField.get(entity));  // Set the id field value
-    stmt.executeUpdate();
-}
+    public Optional<T> findById(Object id) throws SQLException, ReflectiveOperationException {
+        String sql = "SELECT * FROM " + metadata.getTableName() +
+                " WHERE " + metadata.getIdColumn().getColumnName() + " = ?";
+        try (PreparedStatement stmt = session.getConnection().prepareStatement(sql)) {
+            stmt.setObject(1, id);
+            ResultSet rs = stmt.executeQuery();
+            return rs.next() ? Optional.of(mapResultSetToEntity(rs)) : Optional.empty();
+        }
+    }
 
+    public List<T> findAll() throws SQLException, ReflectiveOperationException {
+        return select(null, null, null);
+    }
 
-public void delete(int id) throws SQLException {
-    // Get the table name dynamically from the @Table annotation
-    String tableName = getTableNameFromAnnotation();  // Get the table name
-    System.out.println("Table Name for Delete: " + tableName);  // Print table name
-
-    String sql = "DELETE FROM " + tableName + " WHERE id = ?";
-    PreparedStatement stmt = session.getConnection().prepareStatement(sql);
-    stmt.setInt(1, id);  // Set the id for deletion
-    stmt.executeUpdate();
-}
-
-   
-
-    // Select with WHERE, GROUP BY, HAVING
-    public List<T> select(String whereClause, String groupBy, String having) throws SQLException, IllegalAccessException, InstantiationException {
-        // Get the table name using the @Table annotation
-        String tableName = getTableNameFromAnnotation();
-        System.out.println("Table Name for Select: " + tableName);  // Print table name for debugging
-    
+    public List<T> select(String whereClause, String groupBy, String having)
+            throws SQLException, ReflectiveOperationException {
         StringBuilder sql = new StringBuilder("SELECT * FROM ");
-        sql.append(tableName);  // Use the table name from the annotation
-    
-        if (whereClause != null) {
+        sql.append(metadata.getTableName());
+
+        if (whereClause != null && !whereClause.isEmpty()) {
             sql.append(" WHERE ").append(whereClause);
         }
-        if (groupBy != null) {
+        if (groupBy != null && !groupBy.isEmpty()) {
             sql.append(" GROUP BY ").append(groupBy);
         }
-        if (having != null) {
+        if (having != null && !having.isEmpty()) {
             sql.append(" HAVING ").append(having);
         }
-    
-        ResultSet rs = session.executeQuery(sql.toString());
-        List<T> results = new ArrayList<>();
-        while (rs.next()) {
-            T obj = clazz.newInstance();
-            Field[] fields = clazz.getDeclaredFields();
-            for (Field field : fields) {
-                field.setAccessible(true);
-                String columnName = obj.getColumnName(field);
-                field.set(obj, rs.getObject(columnName));
-            }
-            results.add(obj);
-        }
-        return results;
-    }
-    
-    // Helper method to get the table name from the @Table annotation
-    private String getTableNameFromAnnotation() {
-        if (clazz.isAnnotationPresent(Table.class)) {
-            Table tableAnnotation = clazz.getAnnotation(Table.class);
-            return tableAnnotation.name().isEmpty() ? clazz.getSimpleName().toLowerCase() : tableAnnotation.name();
-        } else {
-            throw new IllegalArgumentException("Class " + clazz.getName() + " is not annotated with @Table");
-        }
-    }
-    
 
-    // Helper method to get the 'id' field dynamically (if it exists)
-    private Field getIdField(Class<?> clazz) {
-        // Try to find the 'id' field in the class or its superclasses
-        while (clazz != null) {
-            try {
-                return clazz.getDeclaredField("id");  // Look for 'id' field
-            } catch (NoSuchFieldException e) {
-                clazz = clazz.getSuperclass();  // Try the superclass if not found
+        try (PreparedStatement stmt = session.getConnection().prepareStatement(sql.toString())) {
+            ResultSet rs = stmt.executeQuery();
+            List<T> results = new ArrayList<>();
+            while (rs.next()) {
+                results.add(mapResultSetToEntity(rs));
             }
+            return results;
         }
-        return null;  // Return null if 'id' field is not found in the class hierarchy
+    }
+
+    private T mapResultSetToEntity(ResultSet rs) throws ReflectiveOperationException, SQLException {
+        T entity = entityClass.getDeclaredConstructor().newInstance();
+        for (ColumnMetadata column : metadata.getColumns()) {
+            Field field = column.getField();
+            field.setAccessible(true);
+            field.set(entity, rs.getObject(column.getColumnName()));
+        }
+        return entity;
+    }
+
+    public DatabaseSession getSession() {
+        return session;
     }
 }
-
