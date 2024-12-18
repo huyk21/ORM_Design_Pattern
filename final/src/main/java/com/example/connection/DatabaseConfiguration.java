@@ -1,4 +1,4 @@
-package com.example;
+package com.example.connection;
 
 import java.util.Properties;
 

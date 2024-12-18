@@ -1,5 +1,9 @@
 package com.example;
 
+import com.example.client.User;
+import com.example.connection.DatabaseSession;
+import com.example.connection.MySQLConnectionFactory;
+
 import java.sql.SQLException;
 import java.util.List;
 
@@ -30,7 +34,7 @@ public class Main {
             // Print the scalar result (count of ids)
             for (Object result : groupedResults) {
                 User user = (User) result;  // Cast to User entity
-                System.out.println("User ID: " + user.getId() + ", Username: " + user.getUsername() + ", Email: " + user.getEmail());
+                System.out.println("User ID: " + user.getId() + ", Username: " + user.getUsername() );
             }
 
         } catch (SQLException | InstantiationException | IllegalAccessException e) {
