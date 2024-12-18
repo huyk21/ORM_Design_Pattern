@@ -1,8 +1,8 @@
 package com.example;
 import java.lang.reflect.Field;
 
-import com.example.Annotation.Column;
-import com.example.Annotation.Table;
+import com.example.annotation.Column;
+import com.example.annotation.Table;
 
 public abstract class BaseEntity {
     
