@@ -7,7 +7,7 @@ import java.util.ArrayList;
 import java.util.Collection;
 import java.util.List;
 
-import com.example.Annotation.Table;
+import com.example.annotation.Table;
 
 class OneToManyField extends RelationField {
     int idColumnIndex;

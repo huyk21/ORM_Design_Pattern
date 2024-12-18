@@ -3,7 +3,7 @@ package com.example.Mapping;
 import java.lang.reflect.Field;
 import java.util.List;
 
-import com.example.Annotation.Table;
+import com.example.annotation.Table;
 
 class OneToOneField extends RelationField {
     protected OneToOneField(Field field, Class<?> clazz, String parentName) {

@@ -1,13 +1,12 @@
 package com.example.Mapping;
 
 import java.lang.reflect.Field;
-import java.lang.reflect.InvocationTargetException;
 import java.util.ArrayList;
 import java.util.List;
 
-import com.example.Annotation.OneToMany;
-import com.example.Annotation.OneToOne;
-import com.example.Annotation.Table;
+import com.example.annotation.OneToMany;
+import com.example.annotation.OneToOne;
+import com.example.annotation.Table;
 
 public class TableMapping {
     private Class<?> clazz;

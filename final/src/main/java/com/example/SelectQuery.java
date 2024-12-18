@@ -10,10 +10,10 @@ import java.util.Arrays;
 import java.util.Collection;
 import java.util.List;
 
-import com.example.Annotation.OneToMany;
-import com.example.Annotation.OneToOne;
-import com.example.Annotation.Table;
 import com.example.Mapping.TableMapping;
+import com.example.annotation.OneToMany;
+import com.example.annotation.OneToOne;
+import com.example.annotation.Table;
 
 class JoinTableMapping {
     protected String thisTable;
