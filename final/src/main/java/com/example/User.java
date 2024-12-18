@@ -2,6 +2,9 @@ package com.example;
 
 import java.lang.reflect.Field;
 
+import com.example.Annotation.Column;
+import com.example.Annotation.Table;
+
 @Table(name = "users") // Ensure that the @Table annotation is correct and corresponds to the "users" table in your database
 public class User extends BaseEntity {
 
