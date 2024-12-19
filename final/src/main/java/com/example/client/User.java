@@ -8,10 +8,11 @@ import java.sql.Date;
 import java.sql.JDBCType;
 import java.sql.Timestamp;
 
-@Table(name = "users") // Ensure that the @Table annotation is correct and corresponds to the "users" table in your database
+@Table(name = "users") // Ensure that the @Table annotation is correct and corresponds to the "users"
+                       // table in your database
 public class User {
 
-    @Id 
+    @Id
     @Column(name = "id", type = JDBCType.INTEGER)
     private int id;
 
@@ -25,20 +26,19 @@ public class User {
     private String email;
 
     @Column(name = "full_name")
-    private String fullName;  // Changed to camelCase
+    private String fullName; // Changed to camelCase
 
     @Column(name = "date_of_birth")
-    private Date dateOfBirth;  // Changed to camelCase
+    private Date dateOfBirth; // Changed to camelCase
 
     @Column(name = "is_active")
-    private boolean isActive;  // Changed to camelCase
+    private boolean isActive; // Changed to camelCase
 
     @Column(name = "created_at")
     private Timestamp createdAt;
 
     @Column(name = "updated_at")
     private Timestamp updatedAt;
-
 
     // Getters and Setters
     public int getId() {
@@ -63,6 +63,14 @@ public class User {
 
     public void setPassword(String password) {
         this.password = password;
+    }
+
+    public String getEmail() {
+        return email;
+    }
+
+    public void setEmail(String email) {
+        this.email = email;
     }
 
     public String getFullName() {
