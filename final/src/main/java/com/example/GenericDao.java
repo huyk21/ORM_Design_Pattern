@@ -1,16 +1,22 @@
 package com.example;
 
-import com.example.annotation.Column;
-import com.example.annotation.Table;
-import com.example.connection.DatabaseSession;
-
 import java.lang.reflect.Field;
+import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Optional;
+import java.util.concurrent.Callable;
 
-// Generic DAO class for handling CRUD operations
+import com.example.annotation.Column;
+import com.example.annotation.Table;
+import com.example.connection.DatabaseSession;
+import com.example.entity.ColumnMetadata;
+import com.example.entity.EntityMetadata;
+import com.example.lazyloading.LazyInitializer;
+
+// Generic DAO class for handimport java.util.concurrent.Callable;ling CRUD operations
 public class GenericDao<T> {
 
     private DatabaseSession session;
@@ -27,7 +33,28 @@ public class GenericDao<T> {
         String sql = buildInsertQuery(entity);
         session.executeUpdate(sql);
     }
-
+    private T mapResultSetToEntity(ResultSet rs) throws ReflectiveOperationException, SQLException {
+        T entity = clazz.getDeclaredConstructor().newInstance();
+        EntityMetadata metadata = new EntityMetadata(clazz);
+    
+        for (ColumnMetadata column : metadata.getColumns()) {
+            Field field = column.getField();
+            field.setAccessible(true); // Allow access to private fields
+    
+            String columnName = column.getColumnName(); // Get the database column name
+            Object value = rs.getObject(columnName); // Retrieve the value from the ResultSet
+    
+            if (value != null) {
+                
+                // Set the value to the corresponding field
+                field.set(entity, value);
+            }
+        }
+    
+        return entity;
+    }
+    
+    
     // Read records from the database (using a simple SELECT query)
     public List<T> read(String whereCondition) throws SQLException, IllegalAccessException, InstantiationException {
         String query = "SELECT * FROM " + getTableName();
@@ -191,6 +218,47 @@ public class GenericDao<T> {
         }
         return result.toString();
     }
+
+    
+public Optional<T> findById(Object id) throws SQLException, ReflectiveOperationException {
+    EntityMetadata metadata = new EntityMetadata(clazz);
+    ColumnMetadata idColumn = metadata.getIdColumn();
+
+    String sql = "SELECT * FROM " + metadata.getTableName() +
+                 " WHERE " + idColumn.getColumnName() + " = ?";
+
+    try (PreparedStatement stmt = session.getConnection().prepareStatement(sql)) {
+        stmt.setObject(1, id);
+        ResultSet rs = stmt.executeQuery();
+
+        if (rs.next()) {
+            return Optional.of(mapResultSetToEntity(rs));
+        }
+    }
+
+    return Optional.empty();
+}
+
+public T getLazy(Class<T> entityClass, Object id) {
+    Callable<T> fetchCallback = () -> {
+        Optional<T> optionalEntity = findById(id);
+        if (optionalEntity.isPresent()) {
+            return optionalEntity.get();
+        } else {
+            // Print a message if the entity is not found
+            System.out.println("Entity not found for ID: " + id);
+            return null; // Return null instead of throwing an exception
+        }
+    };
+
+    LazyInitializer<T> lazyInitializer = new LazyInitializer<>(entityClass, fetchCallback);
+    return lazyInitializer.createProxy();
+}
+
+
+
+
+    
 
     public static class SelectBuilder {
         private StringBuilder query;

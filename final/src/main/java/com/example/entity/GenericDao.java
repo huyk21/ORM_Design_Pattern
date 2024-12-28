@@ -1,6 +1,5 @@
 package com.example.entity;
 
-import com.example.connection.DatabaseSession;
 import java.lang.reflect.Field;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
@@ -8,6 +7,9 @@ import java.sql.SQLException;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
+
+import com.example.connection.DatabaseSession;
+
 
 public class GenericDao<T> {
     private final DatabaseSession session;
@@ -134,6 +136,8 @@ public class GenericDao<T> {
         }
         return entity;
     }
+   
+    
 
     public DatabaseSession getSession() {
         return session;
