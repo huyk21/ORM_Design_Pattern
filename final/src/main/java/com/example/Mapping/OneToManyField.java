@@ -3,21 +3,19 @@ package com.example.Mapping;
 import java.lang.reflect.Field;
 import java.lang.reflect.ParameterizedType;
 import java.lang.reflect.Type;
-import java.util.ArrayList;
+import java.sql.ResultSet;
+import java.sql.SQLException;
 import java.util.Collection;
 import java.util.List;
 
 import com.example.annotation.Table;
 
-class OneToManyField extends RelationField {
-    int idColumnIndex;
-    List<Object> tempCollection;
+public class OneToManyField extends RelationField {
+    private List<Object> tempCollection;
 
     protected OneToManyField(Field field, Class<?> clazz, String parentName) {
         super(field, clazz, parentName);
         clazz = getCollectionGenericClass(field);
-        idColumnIndex = getIdFieldIndex();
-        tempCollection = new ArrayList<>();
 
         tableName = clazz.getAnnotation(Table.class).name();
         if (tableName == "") {
@@ -26,20 +24,14 @@ class OneToManyField extends RelationField {
     }
 
     @Override
-    public int setFields(Object thisObject, List<Object> queryObjects, int index)
-            throws IllegalArgumentException, IllegalAccessException {
+    public void setFields(Object parentObject, ResultSet resultSet)
+            throws IllegalArgumentException, IllegalAccessException, SQLException {
 
         if (!isJoin)
-            return index;
-
-        objectFields = getFields();
-        
-        int idIndex = getIdFieldIndex();
-        objectFields.get(idIndex);
+            return;
 
         Object thisFieldObject;
-
-        int objectIndex = hasObject(queryObjects);
+        int objectIndex = hasObject(resultSet);
 
         if (objectIndex != -1) {
             thisFieldObject = tempCollection.get(objectIndex);
@@ -48,30 +40,17 @@ class OneToManyField extends RelationField {
         }
 
         for (var f : objectFields) {
-            // if (f.getField().isAnnotationPresent(Id.class)) {
-            // IdColumnIndex = index;
-            // }
-            if (f.getField().getName().toUpperCase() == "ID") {
-                idColumnIndex = index;
-            }
-            index = f.setFields(thisFieldObject, queryObjects, index);
+            f.setFields(thisFieldObject, resultSet);
         }
 
         if (objectIndex == -1) {
             tempCollection.add(thisFieldObject);
         }
-
-        return index;
     }
 
-    private int hasObject(List<Object> queryObjects) throws IllegalArgumentException, IllegalAccessException {
-        if (idColumnIndex == 0)
-            return -1;
-
-        SQLField idField = objectFields.get(idColumnIndex);
-
+    private int hasObject(ResultSet resultSet) throws IllegalArgumentException, IllegalAccessException, SQLException {
         for (int i = 0; i < tempCollection.size(); i++) {
-            if (idField.getField().get(tempCollection.get(i)) == queryObjects.get(idField.getIndex()))
+            if (hasSameID(tempCollection.get(i), resultSet))
                 return i;
         }
         return -1;
@@ -92,5 +71,10 @@ class OneToManyField extends RelationField {
             }
         }
         return null;
+    }
+
+    @Override
+    protected void accept(SQLFieldVisitor visitor) {
+        visitor.visit(this);
     }
 }

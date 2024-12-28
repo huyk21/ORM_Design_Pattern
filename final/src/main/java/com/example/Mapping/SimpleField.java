@@ -1,6 +1,8 @@
 package com.example.Mapping;
 
 import java.lang.reflect.Field;
+import java.sql.ResultSet;
+import java.sql.SQLException;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
@@ -16,18 +18,21 @@ class SimpleField extends SQLField {
     }
 
     @Override
-    public int setFields(Object thisObject, List<Object> queryObjects, int index)
-            throws IllegalArgumentException, IllegalAccessException {
-        this.field.set(thisObject, queryObjects.get(index));
-        return index + 1;
+    public void setFields(Object parentObject, ResultSet resultSet)
+            throws IllegalArgumentException, IllegalAccessException, SQLException {
+        this.field.set(parentObject, resultSet.getObject(index));
     }
 
     @Override
-    public void join(String mappingTable, String field, String mappingName) {
-    }
+    public void join(String mappingTable, String field, String mappingName) {}
 
     @Override
     protected int getIndexMapping(int index) {
         return index + 1;
+    }
+
+    @Override
+    protected void accept(SQLFieldVisitor visitor) {
+        visitor.visit(this);
     }
 }

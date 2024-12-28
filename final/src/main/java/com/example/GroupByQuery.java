@@ -12,7 +12,10 @@ public class GroupByQuery<T> {
 
     protected GroupByQuery(DatabaseSession session) {}
 
-    public void having(String field) {}
+    public void having(String field) {
+
+    }
+    
     public List<T> get() {
         return new ArrayList<>();
     }

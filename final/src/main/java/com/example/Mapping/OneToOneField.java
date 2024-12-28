@@ -1,6 +1,8 @@
 package com.example.Mapping;
 
 import java.lang.reflect.Field;
+import java.sql.ResultSet;
+import java.sql.SQLException;
 import java.util.List;
 
 import com.example.annotation.Table;
@@ -16,17 +18,30 @@ class OneToOneField extends RelationField {
     }
 
     @Override
-    public int setFields(Object thisObject, List<Object> queryObjects, int index)
-            throws IllegalArgumentException, IllegalAccessException {
+    public void setFields(Object parentObject, ResultSet resultSet)
+            throws IllegalArgumentException, IllegalAccessException, SQLException {
 
         if (!isJoin)
-            return index;
+            return;
 
-        Object thisFieldObject = createObject();
-        for (var f : this.objectFields) {
-            index = f.setFields(thisFieldObject, queryObjects, index);
+        Object thisFieldObject = null;
+
+        if (!hasSameID(parentObject, resultSet)) {
+            thisFieldObject = createObject();
         }
-        field.set(thisObject, thisFieldObject);
-        return index;
+        else {
+            thisFieldObject = field.get(thisFieldObject);
+        }
+
+        for (var f : this.objectFields) {
+            f.setFields(thisFieldObject, resultSet);
+        }
+        
+        field.set(parentObject, thisFieldObject);
+    }
+
+    @Override
+    protected void accept(SQLFieldVisitor visitor) {
+        visitor.visit(this);
     }
 }

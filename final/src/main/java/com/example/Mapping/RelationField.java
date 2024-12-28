@@ -1,10 +1,12 @@
 package com.example.Mapping;
 
 import java.lang.reflect.Field;
+import java.sql.ResultSet;
+import java.sql.SQLException;
 import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.List;
 
+import com.example.annotation.Id;
 
 abstract class RelationField extends SQLField {
     protected List<SQLField> objectFields;
@@ -18,45 +20,28 @@ abstract class RelationField extends SQLField {
         this.tableName = "";
         this.mappingName = "";
         this.isJoin = false;
-    }
-
-    private void unloadFields() throws SecurityException {
-        List<Field> fields = Arrays.asList(clazz.getDeclaredFields());
-        for (Field f : fields) {
-            objectFields.add(TableMapping.createSQLField(f, f.getClass()));
-        }
-
-        Class<?> superClass = clazz.getSuperclass();
-        while (superClass != null) {
-            fields = Arrays.asList(superClass.getDeclaredFields());
-            for (Field f : fields) {
-                objectFields.add(TableMapping.createSQLField(f, f.getClass()));
-            }
-
-            superClass = superClass.getSuperclass();
-        }
+        this.objectFields = new ArrayList<>();
     }
 
     protected List<SQLField> getFields() throws SecurityException {
-        if (objectFields.isEmpty()) {
-            unloadFields();
-        }
         return objectFields;
     }
 
-    public int getIdFieldIndex() {
+    protected void setFields(List<SQLField> fields) throws SecurityException {
+        objectFields = fields;
+    }
+
+    protected int getIdFieldIndex() {
         objectFields = getFields();
 
         int i = 0;
         for (var field : objectFields) {
-            // TODO: Id Annotation
-            // if (field.getField().isAnnotationPresent(Id.class)) {
-            // return field;
-            // }
-            if (field.getField().getName().toUpperCase() == "ID") {
+            if (field.getField().isAnnotationPresent(Id.class)) {
                 return i;
             }
+            i++;
         }
+
         // Table has no ID, throw
         return -1;
     }
@@ -67,6 +52,26 @@ abstract class RelationField extends SQLField {
 
     public String getMappingName() {
         return mappingName;
+    }
+
+    public boolean hasJoin() {
+        return isJoin;
+    }
+
+    protected boolean hasSameID(Object parentObject, ResultSet resultSet)
+            throws IllegalArgumentException, IllegalAccessException, SQLException {
+        
+        if (parentObject == null) {
+            return false;
+        }
+
+        int idIndex = getIdFieldIndex();
+        SQLField idField = objectFields.get(idIndex);
+
+        Object parentObjectId = idField.getField().get(parentObject);
+        Object newObjectId = resultSet.getObject(idField.getIndex());
+
+        return parentObjectId.equals(newObjectId);
     }
 
     @Override
@@ -81,10 +86,6 @@ abstract class RelationField extends SQLField {
 
     @Override
     public List<String> toQueryString() {
-        if (objectFields.isEmpty()) {
-            unloadFields();
-        }
-
         ArrayList<String> names = new ArrayList<>();
         for (var field : objectFields) {
             names.addAll(field.toQueryString());
@@ -95,13 +96,26 @@ abstract class RelationField extends SQLField {
 
     @Override
     public void join(String mappingTable, String field, String mappingName) {
-        if (this.mappingName == parentName && this.field.getName() == field) {
+        if (mappingTable == parentName && this.field.getName() == field) {
             this.isJoin = true;
             this.mappingName = mappingName;
             return;
         }
         for (var f : objectFields) {
-            f.join(mappingName, field, mappingName);
+            f.join(mappingTable, field, mappingName);
         }
     }
 }
+
+
+// "From User u join User t on u.Id = t.TeacherId"
+
+/*  class User {
+
+        @OneToOne(column = "teacherId")
+        User teacher;
+
+        @OneToOne
+        Group group;
+    } 
+*/

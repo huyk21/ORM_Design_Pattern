@@ -1,8 +1,9 @@
 package com.example.Mapping;
 
 import java.lang.reflect.Field;
+import java.sql.ResultSet;
+import java.sql.SQLException;
 import java.util.List;
-
 
 abstract class SQLField {
     protected Class<?> clazz;
@@ -28,6 +29,10 @@ abstract class SQLField {
         return index;
     }
 
+    protected final void setIndex(int index) {
+        this.index = index;
+    }
+
     protected Object createObject() {
         try {
             return clazz.getConstructor().newInstance();
@@ -39,10 +44,12 @@ abstract class SQLField {
 
     abstract protected int getIndexMapping(int index);
 
-    abstract public List<String> toQueryString();
+    abstract protected List<String> toQueryString();
 
-    abstract public int setFields(Object thisObject, List<Object> queryObjects, int index)
-            throws IllegalArgumentException, IllegalAccessException;
+    abstract protected void setFields(Object parentObject, ResultSet resultSet)
+            throws IllegalArgumentException, IllegalAccessException, SQLException;
 
-    abstract public void join(String mappingTable, String field, String mappingName);
+    abstract protected void join(String mappingTable, String field, String mappingName);
+
+    abstract protected void accept(SQLFieldVisitor visitor);
 }
