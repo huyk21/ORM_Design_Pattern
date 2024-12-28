@@ -240,11 +240,21 @@ public Optional<T> findById(Object id) throws SQLException, ReflectiveOperationE
 }
 
 public T getLazy(Class<T> entityClass, Object id) {
-    Callable<T> fetchCallback = () -> findById(id)
-        .orElseThrow(() -> new IllegalArgumentException("Entity not found for ID: " + id));
+    Callable<T> fetchCallback = () -> {
+        Optional<T> optionalEntity = findById(id);
+        if (optionalEntity.isPresent()) {
+            return optionalEntity.get();
+        } else {
+            // Print a message if the entity is not found
+            System.out.println("Entity not found for ID: " + id);
+            return null; // Return null instead of throwing an exception
+        }
+    };
+
     LazyInitializer<T> lazyInitializer = new LazyInitializer<>(entityClass, fetchCallback);
     return lazyInitializer.createProxy();
 }
+
 
 
 

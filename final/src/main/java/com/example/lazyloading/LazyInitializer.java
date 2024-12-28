@@ -36,33 +36,42 @@ public class LazyInitializer<T> {
     }
 
     @net.bytebuddy.implementation.bind.annotation.RuntimeType
-public Object intercept(@net.bytebuddy.implementation.bind.annotation.SuperCall Callable<Object> superCall,
-                        @net.bytebuddy.implementation.bind.annotation.Origin Method method,
-                        @net.bytebuddy.implementation.bind.annotation.AllArguments Object[] args) throws Exception {
-   
+    public Object intercept(@net.bytebuddy.implementation.bind.annotation.SuperCall Callable<Object> superCall,
+                            @net.bytebuddy.implementation.bind.annotation.Origin Method method,
+                            @net.bytebuddy.implementation.bind.annotation.AllArguments Object[] args) throws Exception {
+        if (!initialized) {
+            loadEntity();
+        }
 
-    if (!initialized) {
-        loadEntity();
+        if (target == null) {
+            // Print error and return a default value or null based on the return type
+            System.out.println("Lazy loading failed: target object is null for method " + method.getName());
+            return getDefaultValue(method.getReturnType());
+        }
+
+        // Invoke the actual method on the target object
+        return method.invoke(target, args);
     }
-
-    if (target == null) {
-        throw new IllegalStateException("Lazy loading failed, target object is null!");
-    }
-
-    // Invoke the actual method on the target object
-    Object result = method.invoke(target, args);
-   
-    return result;
-}
-
 
     private void loadEntity() {
         try {
-           
             this.target = fetchCallback.call(); // Fetch the actual entity
             this.initialized = true;
         } catch (Exception e) {
             throw new RuntimeException("Failed to initialize lazy entity", e);
         }
+    }
+
+    // Helper to provide default values for primitive return types
+    private Object getDefaultValue(Class<?> returnType) {
+        if (returnType.isPrimitive()) {
+            if (returnType == boolean.class) return false;
+            if (returnType == char.class) return '\0';
+            if (returnType == byte.class || returnType == short.class ||
+                returnType == int.class || returnType == long.class) return 0;
+            if (returnType == float.class) return 0.0f;
+            if (returnType == double.class) return 0.0d;
+        }
+        return null; // For non-primitive types
     }
 }

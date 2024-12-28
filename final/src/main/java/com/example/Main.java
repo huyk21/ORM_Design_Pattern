@@ -1,6 +1,8 @@
 package com.example;
 
+import java.sql.Date;
 import java.sql.SQLException;
+import java.sql.Timestamp;
 
 import com.example.client.User;
 import com.example.connection.DatabaseSession;
@@ -19,25 +21,63 @@ public class Main {
         try {
             // Initialize the session
             session = new DatabaseSession(factory);
+            System.out.println("Database connection established.");
+
+            // Start a transaction
+            session.beginTransaction();
 
             GenericDao<User> userDao = new GenericDao<>(session, User.class);
 
             // Lazily load a user
-            User lazyUser = userDao.getLazy(User.class, 11);
+            System.out.println("Attempting to lazily load user with ID 122...");
+            User lazyUser = userDao.getLazy(User.class, 122);
 
-            // Access properties to trigger lazy loading
-            System.out.println(lazyUser.getFullName());
-           
-    
+            if (lazyUser != null) {
+                // Access properties to trigger lazy loading
+                System.out.println("User Full Name: " + lazyUser.getFullName());
+            } else {
+                System.out.println("User not found for ID 122.");
+            }
 
-        } catch (SQLException e) {
+            // Insert a new user for rollback testing
+            User newUser = new User();
+            newUser.setUsername("johndoe");
+            newUser.setPassword("securepassword");
+            newUser.setFullName("John Doe");
+            newUser.setDateOfBirth(Date.valueOf("1990-01-01"));
+            newUser.setActive(true);
+            newUser.setCreatedAt(new Timestamp(System.currentTimeMillis()));
+            newUser.setUpdatedAt(new Timestamp(System.currentTimeMillis()));
+            System.out.println("Saving new user...");
+            userDao.create(newUser);
+            System.out.println("User saved successfully.");
+
+            
+
+            // Commit transaction
+            session.commitTransaction();
+            System.out.println("Transaction committed successfully.");
+
+        } catch (Exception e) {
+            // Rollback transaction if an error occurs
+            if (session != null) {
+                try {
+                    session.rollbackTransaction();
+                    System.out.println("Transaction rolled back successfully.");
+                } catch (SQLException rollbackEx) {
+                    rollbackEx.printStackTrace();
+                }
+            }
+            System.err.println("Operation failed: " + e.getMessage());
             e.printStackTrace();
         } finally {
             // Ensure the session is closed
             if (session != null) {
                 try {
                     session.closeConnection();
+                    System.out.println("Database connection closed.");
                 } catch (SQLException e) {
+                    System.err.println("Failed to close database connection: " + e.getMessage());
                     e.printStackTrace();
                 }
             }

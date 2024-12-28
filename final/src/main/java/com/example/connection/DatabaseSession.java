@@ -38,4 +38,18 @@ public class DatabaseSession {
         Statement stmt = connection.createStatement();
         return stmt.executeUpdate(query);
     }
+    public void beginTransaction() throws SQLException {
+        connection.setAutoCommit(false);
+    }
+    
+    public void commitTransaction() throws SQLException {
+        connection.commit();
+        connection.setAutoCommit(true);
+    }
+    
+    public void rollbackTransaction() throws SQLException {
+        connection.rollback();
+        connection.setAutoCommit(true);
+    }
+    
 }
