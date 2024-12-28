@@ -3,37 +3,38 @@ package com.example.client;
 import java.sql.Date;
 import java.sql.JDBCType;
 import java.sql.Timestamp;
+import java.util.List;
 
 import com.example.annotation.Column;
 import com.example.annotation.Id;
+import com.example.annotation.JoinColumn;
+import com.example.annotation.ManyToOne;
+import com.example.annotation.OneToMany;
 import com.example.annotation.Table;
 
-@Table(name = "users") // Ensure that the @Table annotation is correct and corresponds to the "users" table in your database
-public class User implements UserProxy {
-    public User() {
-        // Default constructor
-    }
-    @Id 
+@Table(name = "users")
+public class User {
+    @Id
     @Column(name = "id", type = JDBCType.INTEGER)
     private int id;
 
     @Column(name = "username", unique = true)
     private String username;
 
-    @Column(name = "password")
-    private String password;
-
     @Column(name = "email")
     private String email;
 
+    @Column(name = "password")
+    private String password;
+
     @Column(name = "full_name")
-    private String fullName;  // Changed to camelCase
+    private String fullName;
 
     @Column(name = "date_of_birth")
-    private Date dateOfBirth;  // Changed to camelCase
+    private Date dateOfBirth;
 
     @Column(name = "is_active")
-    private boolean isActive;  // Changed to camelCase
+    private boolean isActive;
 
     @Column(name = "created_at")
     private Timestamp createdAt;
@@ -41,6 +42,16 @@ public class User implements UserProxy {
     @Column(name = "updated_at")
     private Timestamp updatedAt;
 
+    @OneToOne
+    @JoinColumn(name = "teacher_id") // Self-referencing (One-to-One)
+    private User teacher;
+
+    @ManyToOne
+    @JoinColumn(name = "class_id") // Many-to-One relationship with Classes
+    private Class classObject;
+
+    @OneToMany(mappedBy = "user") // One-to-Many relationship with Subjects
+    private List<Subject> subjects;
 
     // Getters and Setters
     public int getId() {
@@ -57,6 +68,14 @@ public class User implements UserProxy {
 
     public void setUsername(String username) {
         this.username = username;
+    }
+
+    public String getEmail() {
+        return email;
+    }
+
+    public void setEmail(String email) {
+        this.email = email;
     }
 
     public String getPassword() {
@@ -87,8 +106,8 @@ public class User implements UserProxy {
         return isActive;
     }
 
-    public void setActive(boolean active) {
-        isActive = active;
+    public void setActive(boolean isActive) {
+        this.isActive = isActive;
     }
 
     public Timestamp getCreatedAt() {
@@ -106,18 +125,39 @@ public class User implements UserProxy {
     public void setUpdatedAt(Timestamp updatedAt) {
         this.updatedAt = updatedAt;
     }
-    @Override
-public String toString() {
-    return "User{id=" + id +
-           ", username='" + username + '\'' +
-           ", password='" + password + '\'' +
-           ", email='" + email + '\'' +
-           ", fullName='" + fullName + '\'' +
-           ", dateOfBirth=" + dateOfBirth +
-           ", isActive=" + isActive +
-           ", createdAt=" + createdAt +
-           ", updatedAt=" + updatedAt +
-           '}';
-}
 
+    public User getTeacher() {
+        return teacher;
+    }
+
+    public void setTeacher(User teacher) {
+        this.teacher = teacher;
+    }
+
+    public Class getClassObject() {
+        return classObject;
+    }
+
+    public void setClassObject(Class classObject) {
+        this.classObject = classObject;
+    }
+
+    public List<Subject> getSubjects() {
+        return subjects;
+    }
+
+    public void setSubjects(List<Subject> subjects) {
+        this.subjects = subjects;
+    }
+
+    @Override
+    public String toString() {
+        return "User{id=" + id +
+               ", username='" + username + '\'' +
+               ", email='" + email + '\'' +
+               ", teacher=" + (teacher != null ? teacher.getUsername() : "null") +
+               ", classObject=" + (classObject != null ? classObject.getName() : "null") +
+               ", subjects=" + (subjects != null ? subjects.size() : 0) +
+               '}';
+    }
 }
