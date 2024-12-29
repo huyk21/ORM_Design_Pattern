@@ -21,7 +21,7 @@ public class OneToManyField extends RelationField {
 
         this.clazz = getCollectionGenericClass(field);
 
-        tableName = clazz.getAnnotation(Table.class).name();
+        tableName = this.clazz.getAnnotation(Table.class).name();
         if (tableName == "") {
             tableName = clazz.getName().toUpperCase();
         }
@@ -72,17 +72,15 @@ public class OneToManyField extends RelationField {
     }
 
     private Class<?> getCollectionGenericClass(Field collection) {
-        if (Collection.class.isAssignableFrom(collection.getClass())) {
-            var genericFieldType = collection.getGenericType();
+        var genericFieldType = collection.getGenericType();
 
-            if (genericFieldType instanceof ParameterizedType) {
-                ParameterizedType aType = (ParameterizedType) genericFieldType;
-                Type[] fieldArgTypes = aType.getActualTypeArguments();
-                for (Type fieldArgType : fieldArgTypes) {
-                    var fieldArgClass = (Class<?>) fieldArgType;
-                    System.out.println("fieldArgClass = " + fieldArgClass);
-                    return fieldArgClass;
-                }
+        if (genericFieldType instanceof ParameterizedType) {
+            ParameterizedType aType = (ParameterizedType) genericFieldType;
+            Type[] fieldArgTypes = aType.getActualTypeArguments();
+            for (Type fieldArgType : fieldArgTypes) {
+                var fieldArgClass = (Class<?>) fieldArgType;
+                System.out.println("fieldArgClass = " + fieldArgClass);
+                return fieldArgClass;
             }
         }
         return null;

@@ -12,26 +12,20 @@ import com.example.connection.DatabaseSession;
 public class SelectQuery<T> {
     private DatabaseSession session;
 
-    private String sqlFrom;
     private String sqlWhere;
 
     private TableMapping<T> tableMapping;
-    private Class<T> returnType;
 
     protected SelectQuery(DatabaseSession session, Class<T> returnType) {
         this.session = session;
 
         tableMapping = new TableMapping<T>(returnType, "root");
-        this.returnType = returnType;
 
-        sqlFrom = "";
         sqlWhere = "";
     }
 
     public SelectQuery<T> join(String table, String field, String name) {
         tableMapping.join(table, field, name);
-
-        sqlFrom += " " + "tableName" + " on " + field + " = " + name;
 
         return this;
     }
@@ -52,24 +46,33 @@ public class SelectQuery<T> {
 
     public List<T> get() throws SQLException {
         String sqlString = generateSQL();
-        System.out.println(sqlString);
+        System.out.println("\n*** Execute SELECT statement:\n" + sqlString + " ***\n");
 
         ResultSet rs = session.executeQuery(sqlString);
 
         List<T> results = new ArrayList<>();
+
+        boolean hasObject = false;
 
         while (rs.next()) {
             try {
                 for (T item : results) {
                     if (tableMapping.hasSameID(item, rs)) {
                         tableMapping.setFields(item, rs);
-                        continue;
+                        hasObject = true;
+                        break;
                     }
                 }
+                
+                if (hasObject) {
+                    continue;
+                }
+
                 T newObj = tableMapping.createObject();
 
                 tableMapping.setFields(newObj, rs);
                 results.add(newObj);
+                
             } catch (Exception e) {
                 e.printStackTrace();
             }
@@ -84,6 +87,7 @@ public class SelectQuery<T> {
         builder.append(tableMapping.getQueryString());
         builder.append(tableMapping.getFromString());
         builder.append(sqlWhere);
+        builder.append(";");
 
         return builder.toString();
     }

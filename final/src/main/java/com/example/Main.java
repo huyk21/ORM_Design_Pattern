@@ -1,5 +1,6 @@
 package com.example;
 
+import com.example.client.Classroom;
 import com.example.client.User;
 import com.example.connection.DatabaseSession;
 import com.example.connection.MySQLConnectionFactory;
@@ -24,14 +25,16 @@ public class Main {
             DatabaseSession session = new DatabaseSession(factory);
 
             // Create a GenericDao for the User entity
-            GenericDao<User> dao = new GenericDao<>(session, User.class);
+            GenericDao<Classroom> dao = new GenericDao<>(session, Classroom.class);
 
-            List<User> users = dao.select().join("root", "teacher", "t").get();
-            for (var user : users) {
-                System.out.println(user.getFullName());
-                System.out.println(user.getTeacher().getFullName());
-                System.out.println("------");
+            List<Classroom> classes = dao.select().join("root", "students", "s").get();
+            for (var classroom : classes) {
+                System.out.println(classroom.getName());
+                for (var student : classroom.getStudents()) {
+                    System.out.println("\t" + student.getFullName());
+                }
             }
+            System.out.println("------");
 
         } catch (SQLException e) {
             e.printStackTrace();

@@ -22,11 +22,6 @@ public abstract class RelationField extends SQLField implements ParentInterface 
         this.mappingName = "";
         this.isJoin = false;
         this.objectFields = new ArrayList<>();
-
-        this.tableName = clazz.getAnnotation(Table.class).name();
-        if (tableName == "") {
-            tableName = clazz.getSimpleName();
-        }
     }
 
     public List<SQLField> getFields() throws SecurityException {

@@ -39,14 +39,14 @@ public class FieldFactoryVisitor implements SQLFieldVisitor {
         List<SQLField> sqlFields = new ArrayList<>();
 
         for (Field f : rawFields) {
-            sqlFields.add(create(f, f.getDeclaringClass(), parent));
+            sqlFields.add(create(f, f.getType(), parent));
         }
 
         Class<?> superClass = clazz.getSuperclass();
         while (superClass != null) {
             rawFields = Arrays.asList(superClass.getDeclaredFields());
             for (Field f : rawFields) {
-                sqlFields.add(create(f, f.getDeclaringClass(), parent));
+                sqlFields.add(create(f, f.getType(), parent));
             }
 
             superClass = superClass.getSuperclass();
