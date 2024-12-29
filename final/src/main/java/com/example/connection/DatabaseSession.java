@@ -55,21 +55,34 @@ public class DatabaseSession {
         connection.setAutoCommit(true);
     }
     public List<Object[]> executeCustomJoinQuery(String query) throws SQLException {
-    try (PreparedStatement stmt = connection.prepareStatement(query)) {
-        ResultSet rs = stmt.executeQuery();
-        List<Object[]> results = new ArrayList<>();
-        int columnCount = rs.getMetaData().getColumnCount();
-
-        while (rs.next()) {
-            Object[] row = new Object[columnCount];
+        System.out.println("Executing SQL Query: " + query); // Debug query
+    
+        try (PreparedStatement stmt = connection.prepareStatement(query)) {
+            ResultSet rs = stmt.executeQuery();
+            List<Object[]> results = new ArrayList<>();
+            int columnCount = rs.getMetaData().getColumnCount();
+    
+            System.out.println("Number of columns in result: " + columnCount); // Debug column count
+    
+            // Log column metadata
             for (int i = 1; i <= columnCount; i++) {
-                row[i - 1] = rs.getObject(i); // Map each column to the row array
+                System.out.println("Column " + i + ": " + rs.getMetaData().getColumnName(i));
             }
-            results.add(row);
+    
+            while (rs.next()) {
+                Object[] row = new Object[columnCount];
+                for (int i = 1; i <= columnCount; i++) {
+                    row[i - 1] = rs.getObject(i);
+                }
+                results.add(row);
+            }
+    
+            return results;
+        } catch (SQLException e) {
+            System.err.println("SQL Execution Error: " + e.getMessage());
+            throw e; // Rethrow for higher-level handling
         }
-
-        return results;
     }
-}
+    
 
 }

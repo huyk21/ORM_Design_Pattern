@@ -326,11 +326,14 @@ public T getLazy(Class<T> entityClass, Object id) {
 public SelectBuilder dynamicJoinBuilder() {
     SelectBuilder builder = new SelectBuilder(clazz);
 
+    // Get the base table alias or table name
+    String baseTableAlias = clazz.getAnnotation(Table.class).name();
+
     // Add all columns of the main entity
     for (Field field : clazz.getDeclaredFields()) {
         if (field.isAnnotationPresent(Column.class)) {
             Column column = field.getAnnotation(Column.class);
-            builder.addColumn(clazz.getSimpleName().toLowerCase() + "." + column.name());
+            builder.addColumn(baseTableAlias + "." + column.name());
         }
     }
 
@@ -340,27 +343,23 @@ public SelectBuilder dynamicJoinBuilder() {
             // Handle ManyToOne JOIN
             JoinColumn joinColumn = field.getAnnotation(JoinColumn.class);
             if (joinColumn != null) {
-                String joinTable = field.getType().getAnnotation(Table.class).name();
-                builder.addJoin(field.getType(), field.getName(),
-                        clazz.getSimpleName().toLowerCase() + "." + joinColumn.name() + " = " + field.getName() + ".id");
+                Class<?> relatedClass = field.getType();
+                if (!relatedClass.isAnnotationPresent(Table.class)) {
+                    throw new IllegalStateException("Class " + relatedClass.getName() + " is not annotated with @Table");
+                }
+
+                String joinTable = relatedClass.getAnnotation(Table.class).name();
+                builder.addJoin(relatedClass, field.getName(),
+                        baseTableAlias + "." + joinColumn.name() + " = " + field.getName() + ".id");
             }
-        }
-
-        if (field.isAnnotationPresent(OneToMany.class)) {
-            // Handle OneToMany JOIN (inverse)
-            // Assuming mappedBy is defined in @OneToMany
-            OneToMany oneToMany = field.getAnnotation(OneToMany.class);
-            String mappedBy = oneToMany.mappedBy();
-            Class<?> relatedClass = (Class<?>) ((java.lang.reflect.ParameterizedType) field.getGenericType()).getActualTypeArguments()[0];
-            String relatedTable = relatedClass.getAnnotation(Table.class).name();
-
-            builder.addJoin(relatedClass, field.getName(),
-                    field.getName() + "." + mappedBy + " = " + clazz.getSimpleName().toLowerCase() + ".id");
         }
     }
 
     return builder;
 }
+
+
+
 
 
 
@@ -385,11 +384,19 @@ public static class SelectBuilder {
         this.joins = new ArrayList<>();
     }
 
-    // Add a column to the SELECT clause
     public SelectBuilder addColumn(String column) {
-        selectColumns.add(column);
+        if (!column.contains(".")) {
+            // Use the table name or alias from the class annotation
+            column = clazz.getAnnotation(Table.class).name() + "." + column; // Prepend correct table name
+        }
+        selectColumns.add(column); // Add column to the list
         return this;
     }
+    
+    
+    
+    
+    
 
     // Add a scalar function like COUNT or SUM
     public SelectBuilder addScalar(String function, String field) {
@@ -398,17 +405,23 @@ public static class SelectBuilder {
         return this;
     }
 
-    // Add a JOIN clause
     public SelectBuilder addJoin(Class<?> joinClass, String alias, String onCondition) {
         Table tableAnnotation = joinClass.getAnnotation(Table.class);
         if (tableAnnotation == null) {
             throw new IllegalStateException("Class " + joinClass.getName() + " is not annotated with @Table");
         }
-
+    
         String tableName = tableAnnotation.name();
-        joins.add("JOIN " + tableName + " " + alias + " ON " + onCondition);
+        if (joins.stream().noneMatch(join -> join.contains(alias))) { // Avoid duplicate joins
+            joins.add("JOIN " + tableName + " " + alias + " ON " + onCondition);
+        }
         return this;
     }
+    
+    
+    
+    
+    
 
     // Add WHERE clause
     public SelectBuilder where(String whereCondition) {
