@@ -14,7 +14,7 @@ public class Main {
         MySQLConnectionFactory factory = MySQLConnectionFactory.createDefault(
                 "localhost", // host
                 "3306", // port
-                "ORMX", // database
+                "dam_framework", // database
                 "root", // username
                 "mysql" // password
         );
@@ -26,22 +26,14 @@ public class Main {
             // Create a GenericDao for the User entity
             GenericDao<User> dao = new GenericDao<>(session, User.class);
 
-            // Example: Select Users with id and COUNT(id), GROUP BY id, HAVING COUNT(id) > 0
-            GenericDao.SelectBuilder builder = new GenericDao.SelectBuilder(User.class)
-            .addColumn("id")
-            .addColumn("username")
-            .addColumn("email");  // Add columns you want to select
-
-            // Execute the query and get the results as a list of Objects (e.g., Integer)
-            List<Object> groupedResults = dao.select(builder);
-
-            // Print the scalar result (count of ids)
-            for (Object result : groupedResults) {
-                User user = (User) result;  // Cast to User entity
-                System.out.println("User ID: " + user.getId() + ", Username: " + user.getUsername() );
+            List<User> users = dao.select().join("root", "teacher", "t").get();
+            for (var user : users) {
+                System.out.println(user.getFullName());
+                System.out.println(user.getTeacher().getFullName());
+                System.out.println("------");
             }
 
-        } catch (SQLException | InstantiationException | IllegalAccessException e) {
+        } catch (SQLException e) {
             e.printStackTrace();
         }
     }

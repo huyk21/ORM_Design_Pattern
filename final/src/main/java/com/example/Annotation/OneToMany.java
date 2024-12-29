@@ -8,5 +8,5 @@ import java.lang.annotation.Target;
 @Target(ElementType.FIELD)
 
 public @interface OneToMany {
-    String name() default "";
+    String mappedBy() default "";
 }

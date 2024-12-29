@@ -107,6 +107,9 @@ public class GenericDao<T> {
         return results;
     }
     
+    public SelectQuery<T> select() {
+        return new SelectQuery<>(session, clazz);
+    }
 
     // Helper method to build an INSERT query
     private String buildInsertQuery(T entity) throws IllegalAccessException {

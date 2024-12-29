@@ -1,4 +1,4 @@
-package com.example.Mapping;
+package com.example.Mapping.field;
 
 import java.lang.reflect.Field;
 import java.sql.ResultSet;
@@ -7,27 +7,33 @@ import java.util.ArrayList;
 import java.util.List;
 
 import com.example.annotation.Id;
+import com.example.annotation.Table;
 
-abstract class RelationField extends SQLField {
+public abstract class RelationField extends SQLField implements ParentInterface {
     protected List<SQLField> objectFields;
 
+    protected String refName;
     protected String tableName;
     protected String mappingName;
     protected boolean isJoin;
 
-    protected RelationField(Field field, Class<?> clazz, String parentName) {
-        super(field, clazz, parentName);
-        this.tableName = "";
+    protected RelationField(Field field, Class<?> clazz, ParentInterface parent) {
+        super(field, clazz, parent);
         this.mappingName = "";
         this.isJoin = false;
         this.objectFields = new ArrayList<>();
+
+        this.tableName = clazz.getAnnotation(Table.class).name();
+        if (tableName == "") {
+            tableName = clazz.getSimpleName();
+        }
     }
 
-    protected List<SQLField> getFields() throws SecurityException {
+    public List<SQLField> getFields() throws SecurityException {
         return objectFields;
     }
 
-    protected void setFields(List<SQLField> fields) throws SecurityException {
+    public void setFields(List<SQLField> fields) throws SecurityException {
         objectFields = fields;
     }
 
@@ -44,6 +50,10 @@ abstract class RelationField extends SQLField {
 
         // Table has no ID, throw
         return -1;
+    }
+
+    public String getName() {
+        return tableName;
     }
 
     public String getTableName() {
@@ -74,14 +84,34 @@ abstract class RelationField extends SQLField {
         return parentObjectId.equals(newObjectId);
     }
 
+    protected abstract String getRefColumnName() throws IllegalArgumentException;
+
     @Override
-    protected int getIndexMapping(int index) {
+    protected int setIndexMapping(int index) {
+        if (!isJoin) {
+            return index;
+        }
         this.index = index;
         objectFields = getFields();
         for (var field : objectFields) {
-            index = field.getIndexMapping(index);
+            index = field.setIndexMapping(index);
         }
         return index;
+    }
+
+    @Override
+    public String getIdColumnName() {
+        return objectFields.get(getIdFieldIndex()).getName();
+    }
+
+    @Override
+    protected String toFromString() {
+        if (!isJoin) {
+            return "";
+        }
+        
+        return " join " + tableName + " " + mappingName 
+        + " on " + parent.getMappingName() + "." + parent.getIdColumnName() + " = " + mappingName + "." + getRefColumnName();
     }
 
     @Override
@@ -95,27 +125,17 @@ abstract class RelationField extends SQLField {
     }
 
     @Override
-    public void join(String mappingTable, String field, String mappingName) {
-        if (mappingTable == parentName && this.field.getName() == field) {
+    public boolean join(String mappingTable, String field, String mappingName) {
+        if (mappingTable == parent.getMappingName() && this.field.getName() == field) {
             this.isJoin = true;
             this.mappingName = mappingName;
-            return;
+            return true;
         }
         for (var f : objectFields) {
-            f.join(mappingTable, field, mappingName);
+            if (f.join(mappingTable, field, mappingName)) {
+                return true;
+            }
         }
+        return false;
     }
 }
-
-
-// "From User u join User t on u.Id = t.TeacherId"
-
-/*  class User {
-
-        @OneToOne(column = "teacherId")
-        User teacher;
-
-        @OneToOne
-        Group group;
-    } 
-*/

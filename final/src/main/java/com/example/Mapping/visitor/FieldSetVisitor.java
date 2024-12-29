@@ -1,13 +1,21 @@
-package com.example.Mapping;
+package com.example.Mapping.visitor;
 
+import java.sql.ResultSet;
+import java.sql.SQLException;
 import java.util.List;
 
+import com.example.Mapping.field.OneToManyField;
+import com.example.Mapping.field.OneToOneField;
+import com.example.Mapping.field.SQLField;
+import com.example.Mapping.field.SimpleField;
+import com.example.Mapping.field.TableMapping;
+
 public class FieldSetVisitor implements SQLFieldVisitor {
-    private List<Object> objects;
+    private ResultSet resultSet;
     private List<Object> objectStack;
 
-    FieldSetVisitor(List<Object> queryObject, Object rootObject) {
-        this.objects = queryObject;
+    FieldSetVisitor(ResultSet resultSet, Object rootObject) {
+        this.resultSet = resultSet;
         this.objectStack.add(rootObject);
     }
 
@@ -15,10 +23,12 @@ public class FieldSetVisitor implements SQLFieldVisitor {
     public void visit(SimpleField field) {
         int index = field.getIndex();
         try {
-            field.getField().set(field, objects.get(index));
+            field.getField().set(field, resultSet.getObject(index));
         } catch (IllegalArgumentException e) {
             e.printStackTrace();
         } catch (IllegalAccessException e) {
+            e.printStackTrace();
+        } catch (SQLException e) {
             e.printStackTrace();
         }
     }
@@ -34,14 +44,16 @@ public class FieldSetVisitor implements SQLFieldVisitor {
 
     @Override
     public void visit(OneToManyField field) {
-        List<SQLField> fields = field.getFields();
+        if (!field.hasJoin())
+            return;
+    }
+
+    @Override
+    public void visit(TableMapping<?> field) {
+        List<SQLField> fields = field.getSQLFields();
 
         for (SQLField f : fields) {
             f.accept(this);
         }
-    }
-
-    public boolean needNewObject() {
-        return objects.size() == 0;
     }
 }

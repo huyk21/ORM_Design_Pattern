@@ -5,7 +5,7 @@ import java.sql.SQLException;
 import java.util.ArrayList;
 import java.util.List;
 
-import com.example.Mapping.TableMapping;
+import com.example.Mapping.field.TableMapping;
 import com.example.connection.DatabaseSession;
 
 
@@ -15,13 +15,13 @@ public class SelectQuery<T> {
     private String sqlFrom;
     private String sqlWhere;
 
-    private TableMapping tableMapping;
+    private TableMapping<T> tableMapping;
     private Class<T> returnType;
 
     protected SelectQuery(DatabaseSession session, Class<T> returnType) {
         this.session = session;
 
-        tableMapping = new TableMapping(returnType, "root");
+        tableMapping = new TableMapping<T>(returnType, "root");
         this.returnType = returnType;
 
         sqlFrom = "";
@@ -30,6 +30,8 @@ public class SelectQuery<T> {
 
     public SelectQuery<T> join(String table, String field, String name) {
         tableMapping.join(table, field, name);
+
+        sqlFrom += " " + "tableName" + " on " + field + " = " + name;
 
         return this;
     }
@@ -50,16 +52,27 @@ public class SelectQuery<T> {
 
     public List<T> get() throws SQLException {
         String sqlString = generateSQL();
-        ResultSet rs = session.executeQuery(sqlString);
-
         System.out.println(sqlString);
+
+        ResultSet rs = session.executeQuery(sqlString);
 
         List<T> results = new ArrayList<>();
 
-        try {
-            tableMapping.setFields(rs);
-        } catch (Exception e) {
-            e.printStackTrace();
+        while (rs.next()) {
+            try {
+                for (T item : results) {
+                    if (tableMapping.hasSameID(item, rs)) {
+                        tableMapping.setFields(item, rs);
+                        continue;
+                    }
+                }
+                T newObj = tableMapping.createObject();
+
+                tableMapping.setFields(newObj, rs);
+                results.add(newObj);
+            } catch (Exception e) {
+                e.printStackTrace();
+            }
         }
 
         return results;
@@ -68,10 +81,8 @@ public class SelectQuery<T> {
     private String generateSQL() throws SecurityException {
         StringBuilder builder = new StringBuilder();
 
-        builder.append("select ");
         builder.append(tableMapping.getQueryString());
-        builder.append("\nfrom ");
-        builder.append(sqlFrom);
+        builder.append(tableMapping.getFromString());
         builder.append(sqlWhere);
 
         return builder.toString();

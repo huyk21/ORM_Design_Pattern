@@ -1,15 +1,16 @@
-package com.example.Mapping;
+package com.example.Mapping.field;
 
 import java.lang.reflect.Field;
 import java.sql.ResultSet;
 import java.sql.SQLException;
-import java.util.List;
 
+import com.example.Mapping.visitor.SQLFieldVisitor;
+import com.example.annotation.OneToOne;
 import com.example.annotation.Table;
 
-class OneToOneField extends RelationField {
-    protected OneToOneField(Field field, Class<?> clazz, String parentName) {
-        super(field, clazz, parentName);
+public class OneToOneField extends RelationField {
+    public OneToOneField(Field field, Class<?> clazz, ParentInterface parent) {
+        super(field, clazz, parent);
 
         tableName = clazz.getAnnotation(Table.class).name();
         if (tableName == "") {
@@ -41,7 +42,16 @@ class OneToOneField extends RelationField {
     }
 
     @Override
-    protected void accept(SQLFieldVisitor visitor) {
+    public void accept(SQLFieldVisitor visitor) {
         visitor.visit(this);
+    }
+
+    @Override
+    public String getRefColumnName() throws IllegalArgumentException {
+        String refName = field.getAnnotation(OneToOne.class).mappedBy();
+        if (refName == "") {
+            throw new IllegalArgumentException("No reference name found");
+        }
+        return refName;
     }
 }

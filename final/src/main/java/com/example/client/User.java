@@ -2,6 +2,7 @@ package com.example.client;
 
 import com.example.annotation.Column;
 import com.example.annotation.Id;
+import com.example.annotation.OneToOne;
 import com.example.annotation.Table;
 
 import java.sql.Date;
@@ -14,7 +15,7 @@ public class User {
     @Id 
     @Column(name = "id", type = JDBCType.INTEGER)
     private int id;
-
+    
     @Column(name = "username", unique = true)
     private String username;
 
@@ -32,6 +33,12 @@ public class User {
 
     @Column(name = "is_active")
     private boolean isActive;  // Changed to camelCase
+
+    @OneToOne(mappedBy = "teacher_id")
+    private User teacher;  // Changed to camelCase
+
+    // @Column(name = "is_active")
+    // private int class;  // Changed to camelCase
 
     @Column(name = "created_at")
     private Timestamp createdAt;
@@ -103,5 +110,21 @@ public class User {
 
     public void setUpdatedAt(Timestamp updatedAt) {
         this.updatedAt = updatedAt;
+    }
+
+    public String getEmail() {
+        return email;
+    }
+
+    public void setEmail(String email) {
+        this.email = email;
+    }
+
+    public User getTeacher() {
+        return teacher;
+    }
+
+    public void setTeacher(User teacher) {
+        this.teacher = teacher;
     }
 }
