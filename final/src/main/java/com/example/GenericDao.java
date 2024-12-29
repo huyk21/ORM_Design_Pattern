@@ -93,38 +93,144 @@ public class GenericDao<T> {
     
         return entity;
     }
-    
-    
-    // Read records from the database (using a simple SELECT query)
-    public List<T> read(String whereCondition) throws SQLException, IllegalAccessException, InstantiationException {
+    public List<T> read(String whereCondition) throws SQLException, ReflectiveOperationException {
         String query = "SELECT * FROM " + getTableName();
         if (whereCondition != null && !whereCondition.isEmpty()) {
             query += " WHERE " + whereCondition;
         }
-
+    
+        System.out.println("Executing SQL Query: " + query); // Debug SQL query
+    
         ResultSet rs = session.executeQuery(query);
         List<T> results = new ArrayList<>();
-
+    
         while (rs.next()) {
-            T entity = clazz.newInstance();  // Create a new instance of the entity
+            T entity = clazz.getDeclaredConstructor().newInstance();  // Create a new instance of the entity
+            System.out.println("Mapping ResultSet to Entity: " + clazz.getSimpleName()); // Debug entity mapping
+    
             for (Field field : clazz.getDeclaredFields()) {
                 field.setAccessible(true);
-                String columnName = convertToSnakeCase(field.getName());  // Convert to snake_case
-                Object columnValue = rs.getObject(columnName);  // Get column value by snake_case column name
-                if (columnValue != null) {
-                    field.set(entity, columnValue); // Set the value to the field
+    
+                // Handle @JoinColumn for relationships
+                if (field.isAnnotationPresent(JoinColumn.class)) {
+                    JoinColumn joinColumn = field.getAnnotation(JoinColumn.class);
+                    String joinColumnName = joinColumn.name();
+                    Object foreignKeyValue = rs.getObject(joinColumnName);
+    
+                    if (foreignKeyValue != null) {
+                        if (field.getType() == Integer.class || field.getType() == int.class) {
+                            field.set(entity, foreignKeyValue); // Store foreign key
+                        } else {
+                            // Eagerly fetch related entity
+                            GenericDao<?> relatedDao = new GenericDao<>(session, field.getType());
+                            Object relatedEntity = relatedDao.findById(foreignKeyValue).orElse(null);
+                            field.set(entity, relatedEntity);
+                        }
+                    }
+                    continue;
+                }
+    
+                // Skip @OneToMany
+                if (field.isAnnotationPresent(OneToMany.class)) {
+                    continue; // ORM will handle this automatically if required
+                }
+    
+                // Map regular columns
+                if (field.isAnnotationPresent(Column.class)) {
+                    String columnName = field.getAnnotation(Column.class).name();
+                    Object columnValue = rs.getObject(columnName);
+                    if (columnValue != null) {
+                        field.set(entity, columnValue);
+                    }
                 }
             }
+    
             results.add(entity);
         }
         return results;
     }
-
-    // Update an existing record in the database
     public void update(T entity, String whereCondition) throws SQLException, IllegalAccessException {
         String sql = buildUpdateQuery(entity, whereCondition);
         session.executeUpdate(sql);
     }
+    
+    private String buildUpdateQuery(T entity, String whereCondition) throws IllegalAccessException {
+        StringBuilder sql = new StringBuilder("UPDATE " + getTableName() + " SET ");
+    
+        for (Field field : clazz.getDeclaredFields()) {
+            field.setAccessible(true);
+    
+            // Skip @OneToMany relationships or fields without annotations
+            if (field.isAnnotationPresent(OneToMany.class)) {
+                continue;
+            }
+    
+            String columnName = null;
+            Object value = field.get(entity);
+    
+            // Handle @JoinColumn for relationships (e.g., teacher_id)
+            if (field.isAnnotationPresent(JoinColumn.class)) {
+                JoinColumn joinColumn = field.getAnnotation(JoinColumn.class);
+                columnName = joinColumn.name(); // Get the foreign key column name
+            } else if (field.isAnnotationPresent(Column.class)) {
+                // Handle regular columns
+                Column column = field.getAnnotation(Column.class);
+                columnName = column.name(); // Get the column name from the annotation
+            }
+    
+            // If no column name was determined, skip this field
+            if (columnName == null) {
+                continue;
+            }
+    
+            // Append column name and value to the SQL query
+            sql.append(columnName).append(" = ");
+            appendValue(sql, value);
+            sql.append(", ");
+        }
+    
+        // Remove trailing comma
+        if (sql.toString().endsWith(", ")) {
+            sql.delete(sql.length() - 2, sql.length());
+        }
+    
+        // Add WHERE condition
+        if (whereCondition != null && !whereCondition.isEmpty()) {
+            sql.append(" WHERE ").append(whereCondition);
+        } else {
+            throw new IllegalArgumentException("WHERE condition cannot be null or empty for UPDATE query");
+        }
+    
+        return sql.toString();
+    }
+    
+    // Helper method to append values to the SQL query
+    private void appendValue(StringBuilder sql, Object value) {
+        if (value == null) {
+            sql.append("NULL");
+        } else if (value instanceof String || value instanceof Date || value instanceof Timestamp) {
+            sql.append("'").append(value).append("'");
+        } else {
+            sql.append(value);
+        }
+    }
+    
+    
+
+    
+       
+    
+    
+    
+    
+    
+    
+    
+    
+    
+
+   
+    
 
     // Delete a record from the database
     public void delete(String whereCondition) throws SQLException {
@@ -236,28 +342,7 @@ public class GenericDao<T> {
     
 
 
-    // Helper method to build an UPDATE query
-    private String buildUpdateQuery(T entity, String whereCondition) throws IllegalAccessException {
-        StringBuilder sql = new StringBuilder("UPDATE " + getTableName() + " SET ");
 
-        for (Field field : clazz.getDeclaredFields()) {
-            field.setAccessible(true);
-
-            // Get the column name (using @Column annotation if available)
-            String columnName = convertToSnakeCase(field.getName());  // Convert to snake_case
-            if (field.isAnnotationPresent(Column.class)) {
-                columnName = field.getAnnotation(Column.class).name();
-            }
-
-            sql.append(columnName).append(" = '")
-                .append(field.get(entity)).append("', ");
-        }
-
-        sql.delete(sql.length() - 2, sql.length());  // Remove the trailing comma
-
-        sql.append(" WHERE ").append(whereCondition);
-        return sql.toString();
-    }
 
     // Helper method to get table name from the @Table annotation
     private String getTableName() {
@@ -326,21 +411,9 @@ public T getLazy(Class<T> entityClass, Object id) {
 public SelectBuilder dynamicJoinBuilder() {
     SelectBuilder builder = new SelectBuilder(clazz);
 
-    // Get the base table alias or table name
-    String baseTableAlias = clazz.getAnnotation(Table.class).name();
-
-    // Add all columns of the main entity
-    for (Field field : clazz.getDeclaredFields()) {
-        if (field.isAnnotationPresent(Column.class)) {
-            Column column = field.getAnnotation(Column.class);
-            builder.addColumn(baseTableAlias + "." + column.name());
-        }
-    }
-
-    // Process relationships for JOINs
+    // Process relationships for JOINs only
     for (Field field : clazz.getDeclaredFields()) {
         if (field.isAnnotationPresent(ManyToOne.class)) {
-            // Handle ManyToOne JOIN
             JoinColumn joinColumn = field.getAnnotation(JoinColumn.class);
             if (joinColumn != null) {
                 Class<?> relatedClass = field.getType();
@@ -348,15 +421,19 @@ public SelectBuilder dynamicJoinBuilder() {
                     throw new IllegalStateException("Class " + relatedClass.getName() + " is not annotated with @Table");
                 }
 
-                String joinTable = relatedClass.getAnnotation(Table.class).name();
-                builder.addJoin(relatedClass, field.getName(),
-                        baseTableAlias + "." + joinColumn.name() + " = " + field.getName() + ".id");
+                String relatedTableName = relatedClass.getAnnotation(Table.class).name();
+                String alias = field.getName();
+                builder.addJoin(relatedClass, alias,
+                        clazz.getAnnotation(Table.class).name() + "." + joinColumn.name() + " = " + alias + ".id");
             }
         }
     }
 
     return builder;
 }
+
+
+
 
 
 
@@ -373,7 +450,7 @@ public static class SelectBuilder {
     private String whereClause;
     private String groupBy;
     private String having;
-    private boolean isScalar = false;
+    private boolean isScalar = false;   // Flag for scalar queries (e.g., COUNT, MAX, etc.)
 
     private Class<?> clazz;  // Main class for building the query
 
@@ -386,56 +463,50 @@ public static class SelectBuilder {
 
     public SelectBuilder addColumn(String column) {
         if (!column.contains(".")) {
-            // Use the table name or alias from the class annotation
-            column = clazz.getAnnotation(Table.class).name() + "." + column; // Prepend correct table name
+            column = clazz.getAnnotation(Table.class).name() + "." + column;
         }
-        selectColumns.add(column); // Add column to the list
+        selectColumns.add(column); // Add column to SELECT list
         return this;
     }
     
-    
-    
-    
-    
-
-    // Add a scalar function like COUNT or SUM
-    public SelectBuilder addScalar(String function, String field) {
-        selectColumns.add(function + "(" + field + ")");
+    public SelectBuilder addScalar(String function, String column, String alias) {
+        String scalar = function + "(" + column + ")";
+        if (alias != null && !alias.isEmpty()) {
+            scalar += " AS " + alias;
+        }
+        selectColumns.add(scalar);
         this.isScalar = true;
         return this;
     }
+    
 
+    // Add a JOIN clause
     public SelectBuilder addJoin(Class<?> joinClass, String alias, String onCondition) {
         Table tableAnnotation = joinClass.getAnnotation(Table.class);
         if (tableAnnotation == null) {
             throw new IllegalStateException("Class " + joinClass.getName() + " is not annotated with @Table");
         }
-    
+
         String tableName = tableAnnotation.name();
         if (joins.stream().noneMatch(join -> join.contains(alias))) { // Avoid duplicate joins
             joins.add("JOIN " + tableName + " " + alias + " ON " + onCondition);
         }
         return this;
     }
-    
-    
-    
-    
-    
 
-    // Add WHERE clause
+    // Add a WHERE clause
     public SelectBuilder where(String whereCondition) {
         this.whereClause = whereCondition;
         return this;
     }
 
-    // Add GROUP BY clause
+    // Add a GROUP BY clause
     public SelectBuilder groupBy(String groupBy) {
         this.groupBy = groupBy;
         return this;
     }
 
-    // Add HAVING clause
+    // Add a HAVING clause
     public SelectBuilder having(String having) {
         this.having = having;
         return this;
@@ -446,30 +517,46 @@ public static class SelectBuilder {
         if (selectColumns.isEmpty()) {
             throw new IllegalStateException("No columns selected.");
         }
-
-        query.append(String.join(", ", selectColumns));  // Add selected columns
-        query.append(" FROM ").append(getTableName(clazz)).append(" ");  // Add main table
-
-        for (String join : joins) {
-            query.append(join).append(" ");  // Add JOIN clauses
+     // Validate selectColumns compatibility with GROUP BY
+     if (groupBy != null && !groupBy.isEmpty()) {
+        for (String column : selectColumns) {
+            if (!column.contains("COUNT") && !groupBy.contains(column.split("\\.")[1])) {
+                throw new IllegalStateException("Column " + column + " is not valid for GROUP BY query.");
+            }
         }
-
+    }
+        // Initialize a new StringBuilder for each query
+        StringBuilder query = new StringBuilder("SELECT ");
+    
+        // Add SELECT columns
+        query.append(String.join(", ", selectColumns)).append(" FROM ")
+             .append(getTableName(clazz)).append(" ");
+    
+        // Add JOIN clauses
+        for (String join : joins) {
+            query.append(join).append(" ");
+        }
+    
+        // Add WHERE clause
         if (whereClause != null && !whereClause.isEmpty()) {
             query.append("WHERE ").append(whereClause).append(" ");
         }
-
+    
+        // Add GROUP BY clause
         if (groupBy != null && !groupBy.isEmpty()) {
             query.append("GROUP BY ").append(groupBy).append(" ");
         }
-
+    
+        // Add HAVING clause
         if (having != null && !having.isEmpty()) {
             query.append("HAVING ").append(having).append(" ");
         }
-
+    
         return query.toString();
     }
+    
 
-    // Helper to get table name from class
+    // Helper to get table name from @Table annotation
     private String getTableName(Class<?> clazz) {
         Table tableAnnotation = clazz.getAnnotation(Table.class);
         if (tableAnnotation != null && !tableAnnotation.name().isEmpty()) {
@@ -494,7 +581,6 @@ public static class SelectBuilder {
         return result.toString();
     }
 
-    // Check if query is scalar
     public boolean isScalar() {
         return isScalar;
     }

@@ -2,6 +2,7 @@ package com.example.client;
 
 
 import java.sql.JDBCType;
+import java.util.ArrayList;
 import java.util.List;
 
 import com.example.annotation.Column;
@@ -21,7 +22,7 @@ public class Class {
     private int year;
 
     @OneToMany(mappedBy = "classObject") // Back reference for Users
-    private List<User> users;
+    private List<User> users = new ArrayList<>(); // Initialize to avoid null issues
 
     // Getters and Setters
     public int getId() {
