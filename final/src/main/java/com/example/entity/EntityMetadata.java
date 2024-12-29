@@ -1,12 +1,13 @@
 package com.example.entity;
 
-import com.example.annotation.Column;
-import com.example.annotation.Id;
-import com.example.annotation.Table;
 import java.lang.reflect.Field;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
+
+import com.example.annotation.Column;
+import com.example.annotation.Id;
+import com.example.annotation.Table;
 
 public class EntityMetadata {
     private final Class<?> entityClass;
@@ -19,6 +20,8 @@ public class EntityMetadata {
         this.tableName = resolveTableName();
         this.columns = resolveColumns();
         this.idColumn = findIdColumn();
+
+        
     }
 
     private String resolveTableName() {

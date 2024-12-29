@@ -10,8 +10,10 @@ import java.sql.JDBCType;
 import java.sql.Timestamp;
 
 @Table(name = "users") // Ensure that the @Table annotation is correct and corresponds to the "users" table in your database
-public class User {
-
+public class User implements UserProxy {
+    public User() {
+        // Default constructor
+    }
     @Id 
     @Column(name = "id", type = JDBCType.INTEGER)
     private int id;
@@ -111,6 +113,20 @@ public class User {
     public void setUpdatedAt(Timestamp updatedAt) {
         this.updatedAt = updatedAt;
     }
+    @Override
+public String toString() {
+    return "User{id=" + id +
+           ", username='" + username + '\'' +
+           ", password='" + password + '\'' +
+           ", email='" + email + '\'' +
+           ", fullName='" + fullName + '\'' +
+           ", dateOfBirth=" + dateOfBirth +
+           ", isActive=" + isActive +
+           ", createdAt=" + createdAt +
+           ", updatedAt=" + updatedAt +
+           '}';
+}
+
 
     public String getEmail() {
         return email;
