@@ -1,15 +1,23 @@
 package com.example;
 
 import java.lang.reflect.Field;
+import java.sql.Date;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.SQLException;
+import java.sql.Statement;
+import java.sql.Timestamp;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
 import java.util.concurrent.Callable;
 
 import com.example.annotation.Column;
+import com.example.annotation.Id;
+import com.example.annotation.JoinColumn;
+import com.example.annotation.ManyToOne;
+import com.example.annotation.OneToMany;
+import com.example.annotation.OneToOne;
 import com.example.annotation.Table;
 import com.example.connection.DatabaseSession;
 import com.example.entity.ColumnMetadata;
@@ -29,10 +37,42 @@ public class GenericDao<T> {
     }
 
     // Create a new record in the database
-    public void create(T entity) throws SQLException, IllegalAccessException {
+    public void create(T entity) throws SQLException, IllegalAccessException, NoSuchFieldException {
         String sql = buildInsertQuery(entity);
+
+        try (PreparedStatement stmt = session.getConnection().prepareStatement(sql, Statement.RETURN_GENERATED_KEYS)) {
+            stmt.executeUpdate();
+    
+            // Retrieve the generated keys
+            try (ResultSet generatedKeys = stmt.getGeneratedKeys()) {
+                if (generatedKeys.next()) {
+                    Field idField = getIdField(); // Get the @Id field
+                    idField.setAccessible(true);
+                    Object key = generatedKeys.getObject(1);
+                
+                    if (idField.getType() == int.class || idField.getType() == Integer.class) {
+                        idField.set(entity, ((Number) key).intValue()); // Convert to int
+                    } else if (idField.getType() == long.class || idField.getType() == Long.class) {
+                        idField.set(entity, ((Number) key).longValue()); // Convert to long
+                    } else {
+                        idField.set(entity, key); // Directly set if already compatible
+                    }
+                }
+                
+            }
+        }
+        
         session.executeUpdate(sql);
     }
+    private Field getIdField() {
+    for (Field field : clazz.getDeclaredFields()) {
+        if (field.isAnnotationPresent(Id.class)) {
+            return field;
+        }
+    }
+    throw new IllegalStateException("No @Id field found in class: " + clazz.getName());
+}
+
     private T mapResultSetToEntity(ResultSet rs) throws ReflectiveOperationException, SQLException {
         T entity = clazz.getDeclaredConstructor().newInstance();
         EntityMetadata metadata = new EntityMetadata(clazz);
@@ -135,37 +175,66 @@ public class GenericDao<T> {
     }
     
 
-    // Helper method to build an INSERT query
-    private String buildInsertQuery(T entity) throws IllegalAccessException {
+    private String buildInsertQuery(T entity) throws IllegalAccessException, SecurityException, NoSuchFieldException {
         StringBuilder sql = new StringBuilder("INSERT INTO " + getTableName() + " (");
         StringBuilder values = new StringBuilder("VALUES (");
-
+    
         for (Field field : clazz.getDeclaredFields()) {
             field.setAccessible(true);
-
-            // Get the column name (using @Column annotation if available)
-            String columnName = convertToSnakeCase(field.getName());  // Convert to snake_case
-            if (field.isAnnotationPresent(Column.class)) {
-                columnName = field.getAnnotation(Column.class).name();
+    
+            // Skip fields annotated with @OneToMany or @OneToOne
+            if (field.isAnnotationPresent(OneToMany.class) || field.isAnnotationPresent(OneToOne.class)) {
+                continue;
             }
-
-            sql.append(columnName).append(", ");
-            // Check if the field is of type Boolean and convert it to 1 or 0
-            if (field.getType() == Boolean.class || field.getType() == boolean.class) {
-                Boolean value = (Boolean) field.get(entity);
-                values.append(value ? "1" : "0").append(", ");
-            } else {
-                values.append("'").append(field.get(entity)).append("', ");
+    
+            // Process fields annotated with @Column
+            if (field.isAnnotationPresent(Column.class)) {
+                Column columnAnnotation = field.getAnnotation(Column.class);
+                String columnName = columnAnnotation.name();
+                sql.append(columnName).append(", ");
+    
+                Object fieldValue = field.get(entity);
+                if (fieldValue == null) {
+                    values.append("NULL").append(", ");
+                } else if (fieldValue instanceof String || fieldValue instanceof Date || fieldValue instanceof Timestamp) {
+                    values.append("'").append(fieldValue).append("', ");
+                } else {
+                    values.append(fieldValue).append(", ");
+                }
+            }
+    
+            // Process fields annotated with @ManyToOne
+            if (field.isAnnotationPresent(ManyToOne.class)) {
+                JoinColumn joinColumn = field.getAnnotation(JoinColumn.class); // Ensure @JoinColumn is present
+                String columnName = joinColumn.name(); // Get the name of the foreign key column
+                sql.append(columnName).append(", ");
+    
+                Object relatedEntity = field.get(entity);
+                if (relatedEntity == null) {
+                    values.append("NULL").append(", ");
+                } else {
+                    // Assume the related entity has an ID field annotated with @Id
+                    Field idField = relatedEntity.getClass().getDeclaredField("id");
+                    idField.setAccessible(true);
+                    Object relatedId = idField.get(relatedEntity);
+                    values.append(relatedId).append(", ");
+                }
             }
         }
-
-        sql.delete(sql.length() - 2, sql.length());  // Remove the trailing comma
-        values.delete(values.length() - 2, values.length());  // Remove the trailing comma
-
+    
+        // Remove trailing commas
+        sql.delete(sql.length() - 2, sql.length());
+        values.delete(values.length() - 2, values.length());
+    
         sql.append(") ").append(values).append(")");
-
+    
+        // Debugging: Print the generated SQL
+        System.out.println("Generated INSERT SQL: " + sql);
+    
         return sql.toString();
     }
+    
+
 
     // Helper method to build an UPDATE query
     private String buildUpdateQuery(T entity, String whereCondition) throws IllegalAccessException {
@@ -254,112 +323,170 @@ public T getLazy(Class<T> entityClass, Object id) {
     LazyInitializer<T> lazyInitializer = new LazyInitializer<>(entityClass, fetchCallback);
     return lazyInitializer.createProxy();
 }
+public SelectBuilder dynamicJoinBuilder() {
+    SelectBuilder builder = new SelectBuilder(clazz);
 
-
-
-
-    
-
-    public static class SelectBuilder {
-        private StringBuilder query;
-        private List<String> selectColumns;  // To handle multiple columns in SELECT
-        private String groupBy;
-        private String having;
-        private boolean isScalar = false;
-    
-        private Class<?> clazz;  // Store the class reference to get the table name
-    
-        public SelectBuilder(Class<?> clazz) {
-            this.clazz = clazz;
-            query = new StringBuilder("SELECT ");
-            this.selectColumns = new ArrayList<>();
-        }
-    
-        // Add a regular column to the SELECT clause
-        public SelectBuilder addColumn(String column) {
-            selectColumns.add(column);
-            return this;
-        }
-    
-        // Add a scalar function like COUNT(id) to the SELECT clause
-        public SelectBuilder addScalar(String function, String field) {
-            selectColumns.add(function + "(" + field + ")");
-            this.isScalar = true;  // Set flag indicating this is a scalar query
-            return this;
-        }
-    
-        // Add GROUP BY clause
-        public SelectBuilder groupBy(String groupBy) {
-            this.groupBy = groupBy;
-            return this;
-        }
-    
-        // Add HAVING clause
-        public SelectBuilder having(String having) {
-            this.having = having;
-            return this;
-        }
-    
-        // Build the final SELECT query
-        public String buildSelectQuery() {
-            // If columns were added, join them with commas
-            if (selectColumns.isEmpty()) {
-                throw new IllegalStateException("No columns selected.");
-            }
-    
-            // Append SELECT columns (scalar or regular)
-            query.append(String.join(", ", selectColumns));  // Add columns to the SELECT part
-    
-            // Get the table name using the getTableName() method
-            query.append(" FROM ").append(getTableName());
-    
-            // Add GROUP BY if specified
-            if (groupBy != null && !groupBy.isEmpty()) {
-                query.append(" GROUP BY ").append(groupBy);
-            }
-    
-            // Add HAVING if specified
-            if (having != null && !having.isEmpty()) {
-                query.append(" HAVING ").append(having);
-            }
-    
-            return query.toString();
-        }
-    
-        // Check if the query is scalar (like COUNT, MAX, etc.)
-        public boolean isScalar() {
-            return isScalar;
-        }
-    
-        // Helper method to get table name for the SELECT query
-        private String getTableName() {
-            // Assuming the class is annotated with @Table to define the table name
-            Table tableAnnotation = clazz.getAnnotation(Table.class);
-            if (tableAnnotation != null && !tableAnnotation.name().isEmpty()) {
-                return tableAnnotation.name();  // Use table name from the annotation
-            }
-    
-            // If no annotation is found, convert the class name to snake_case
-            return convertToSnakeCase(clazz.getSimpleName());
-        }
-    
-        // Helper method to convert camelCase or PascalCase to snake_case
-        private String convertToSnakeCase(String input) {
-            StringBuilder result = new StringBuilder();
-    
-            for (char c : input.toCharArray()) {
-                if (Character.isUpperCase(c)) {
-                    if (result.length() > 0) {
-                        result.append('_');  // Add an underscore before uppercase letters
-                    }
-                    result.append(Character.toLowerCase(c));  // Convert uppercase to lowercase
-                } else {
-                    result.append(c);
-                }
-            }
-            return result.toString();
+    // Add all columns of the main entity
+    for (Field field : clazz.getDeclaredFields()) {
+        if (field.isAnnotationPresent(Column.class)) {
+            Column column = field.getAnnotation(Column.class);
+            builder.addColumn(clazz.getSimpleName().toLowerCase() + "." + column.name());
         }
     }
+
+    // Process relationships for JOINs
+    for (Field field : clazz.getDeclaredFields()) {
+        if (field.isAnnotationPresent(ManyToOne.class)) {
+            // Handle ManyToOne JOIN
+            JoinColumn joinColumn = field.getAnnotation(JoinColumn.class);
+            if (joinColumn != null) {
+                String joinTable = field.getType().getAnnotation(Table.class).name();
+                builder.addJoin(field.getType(), field.getName(),
+                        clazz.getSimpleName().toLowerCase() + "." + joinColumn.name() + " = " + field.getName() + ".id");
+            }
+        }
+
+        if (field.isAnnotationPresent(OneToMany.class)) {
+            // Handle OneToMany JOIN (inverse)
+            // Assuming mappedBy is defined in @OneToMany
+            OneToMany oneToMany = field.getAnnotation(OneToMany.class);
+            String mappedBy = oneToMany.mappedBy();
+            Class<?> relatedClass = (Class<?>) ((java.lang.reflect.ParameterizedType) field.getGenericType()).getActualTypeArguments()[0];
+            String relatedTable = relatedClass.getAnnotation(Table.class).name();
+
+            builder.addJoin(relatedClass, field.getName(),
+                    field.getName() + "." + mappedBy + " = " + clazz.getSimpleName().toLowerCase() + ".id");
+        }
+    }
+
+    return builder;
+}
+
+
+
+
+    
+
+public static class SelectBuilder {
+    private StringBuilder query;
+    private List<String> selectColumns;  // Columns to SELECT
+    private List<String> joins;         // JOIN clauses
+    private String whereClause;
+    private String groupBy;
+    private String having;
+    private boolean isScalar = false;
+
+    private Class<?> clazz;  // Main class for building the query
+
+    public SelectBuilder(Class<?> clazz) {
+        this.clazz = clazz;
+        query = new StringBuilder("SELECT ");
+        this.selectColumns = new ArrayList<>();
+        this.joins = new ArrayList<>();
+    }
+
+    // Add a column to the SELECT clause
+    public SelectBuilder addColumn(String column) {
+        selectColumns.add(column);
+        return this;
+    }
+
+    // Add a scalar function like COUNT or SUM
+    public SelectBuilder addScalar(String function, String field) {
+        selectColumns.add(function + "(" + field + ")");
+        this.isScalar = true;
+        return this;
+    }
+
+    // Add a JOIN clause
+    public SelectBuilder addJoin(Class<?> joinClass, String alias, String onCondition) {
+        Table tableAnnotation = joinClass.getAnnotation(Table.class);
+        if (tableAnnotation == null) {
+            throw new IllegalStateException("Class " + joinClass.getName() + " is not annotated with @Table");
+        }
+
+        String tableName = tableAnnotation.name();
+        joins.add("JOIN " + tableName + " " + alias + " ON " + onCondition);
+        return this;
+    }
+
+    // Add WHERE clause
+    public SelectBuilder where(String whereCondition) {
+        this.whereClause = whereCondition;
+        return this;
+    }
+
+    // Add GROUP BY clause
+    public SelectBuilder groupBy(String groupBy) {
+        this.groupBy = groupBy;
+        return this;
+    }
+
+    // Add HAVING clause
+    public SelectBuilder having(String having) {
+        this.having = having;
+        return this;
+    }
+
+    // Build the final SELECT query
+    public String buildSelectQuery() {
+        if (selectColumns.isEmpty()) {
+            throw new IllegalStateException("No columns selected.");
+        }
+
+        query.append(String.join(", ", selectColumns));  // Add selected columns
+        query.append(" FROM ").append(getTableName(clazz)).append(" ");  // Add main table
+
+        for (String join : joins) {
+            query.append(join).append(" ");  // Add JOIN clauses
+        }
+
+        if (whereClause != null && !whereClause.isEmpty()) {
+            query.append("WHERE ").append(whereClause).append(" ");
+        }
+
+        if (groupBy != null && !groupBy.isEmpty()) {
+            query.append("GROUP BY ").append(groupBy).append(" ");
+        }
+
+        if (having != null && !having.isEmpty()) {
+            query.append("HAVING ").append(having).append(" ");
+        }
+
+        return query.toString();
+    }
+
+    // Helper to get table name from class
+    private String getTableName(Class<?> clazz) {
+        Table tableAnnotation = clazz.getAnnotation(Table.class);
+        if (tableAnnotation != null && !tableAnnotation.name().isEmpty()) {
+            return tableAnnotation.name();
+        }
+        return convertToSnakeCase(clazz.getSimpleName());
+    }
+
+    // Helper to convert camelCase to snake_case
+    private String convertToSnakeCase(String input) {
+        StringBuilder result = new StringBuilder();
+        for (char c : input.toCharArray()) {
+            if (Character.isUpperCase(c)) {
+                if (result.length() > 0) {
+                    result.append('_');
+                }
+                result.append(Character.toLowerCase(c));
+            } else {
+                result.append(c);
+            }
+        }
+        return result.toString();
+    }
+
+    // Check if query is scalar
+    public boolean isScalar() {
+        return isScalar;
+    }
+}
+
     
     
 }

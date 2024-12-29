@@ -18,7 +18,7 @@ public class User {
     @Column(name = "id", type = JDBCType.INTEGER)
     private int id;
 
-    @Column(name = "username", unique = true)
+    @Column(name = "username")
     private String username;
 
     @Column(name = "email")

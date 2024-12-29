@@ -1,10 +1,8 @@
 package com.example;
 
-import java.sql.Date;
 import java.sql.SQLException;
-import java.sql.Timestamp;
+import java.util.List;
 
-import com.example.client.User;
 import com.example.connection.DatabaseSession;
 import com.example.connection.MySQLConnectionFactory;
 
@@ -23,51 +21,24 @@ public class Main {
             session = new DatabaseSession(factory);
             System.out.println("Database connection established.");
 
-            // Start a transaction
-            session.beginTransaction();
+            // Define your query
+            String query = """
+                SELECT c.id AS class_id, c.name AS class_name, 
+                       u.id AS teacher_id, u.full_name AS teacher_name
+                FROM classes c
+                JOIN users u ON c.id = u.class_id
+            """;
 
-            GenericDao<User> userDao = new GenericDao<>(session, User.class);
+            // Execute the query
+            List<Object[]> results = session.executeCustomJoinQuery(query);
 
-            // Lazily load a user
-            System.out.println("Attempting to lazily load user with ID 122...");
-            User lazyUser = userDao.getLazy(User.class, 122);
-
-            if (lazyUser != null) {
-                // Access properties to trigger lazy loading
-                System.out.println("User Full Name: " + lazyUser.getFullName());
-            } else {
-                System.out.println("User not found for ID 122.");
+            // Display the results
+            for (Object[] row : results) {
+                System.out.println("Class ID: " + row[0] + ", Class Name: " + row[1]);
+                System.out.println("  Teacher ID: " + row[2] + ", Teacher Name: " + row[3]);
             }
-
-            // Insert a new user for rollback testing
-            User newUser = new User();
-            newUser.setUsername("johndoe");
-            newUser.setPassword("securepassword");
-            newUser.setFullName("John Doe");
-            newUser.setDateOfBirth(Date.valueOf("1990-01-01"));
-            newUser.setActive(true);
-            newUser.setCreatedAt(new Timestamp(System.currentTimeMillis()));
-            newUser.setUpdatedAt(new Timestamp(System.currentTimeMillis()));
-            System.out.println("Saving new user...");
-            userDao.create(newUser);
-            System.out.println("User saved successfully.");
-
-            
-
-            // Commit transaction
-            session.commitTransaction();
-            System.out.println("Transaction committed successfully.");
 
         } catch (Exception e) {
-            // Rollback transaction if an error occurs
-            if (session != null) {
-                try {
-                    session.rollbackTransaction();
-                    System.out.println("Transaction rolled back successfully.");
-                } catch (SQLException rollbackEx) {
-                    rollbackEx.printStackTrace();
-                }
-            }
             System.err.println("Operation failed: " + e.getMessage());
             e.printStackTrace();
         } finally {

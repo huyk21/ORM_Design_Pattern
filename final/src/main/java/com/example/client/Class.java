@@ -11,7 +11,7 @@ import com.example.annotation.Table;
 @Table(name = "classes")
 public class Class {
     @Id
-    @Column(name = "id", type = JDBCType.INTEGER)
+    @Column(name = "id", type = JDBCType.BIGINT)
     private int id;
 
     @Column(name = "name")

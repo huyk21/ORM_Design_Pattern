@@ -1,9 +1,12 @@
 package com.example.connection;
 
 import java.sql.Connection;
+import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.sql.Statement;
+import java.util.ArrayList;
+import java.util.List;
 
 public class DatabaseSession {
 
@@ -51,5 +54,22 @@ public class DatabaseSession {
         connection.rollback();
         connection.setAutoCommit(true);
     }
-    
+    public List<Object[]> executeCustomJoinQuery(String query) throws SQLException {
+    try (PreparedStatement stmt = connection.prepareStatement(query)) {
+        ResultSet rs = stmt.executeQuery();
+        List<Object[]> results = new ArrayList<>();
+        int columnCount = rs.getMetaData().getColumnCount();
+
+        while (rs.next()) {
+            Object[] row = new Object[columnCount];
+            for (int i = 1; i <= columnCount; i++) {
+                row[i - 1] = rs.getObject(i); // Map each column to the row array
+            }
+            results.add(row);
+        }
+
+        return results;
+    }
+}
+
 }
