@@ -5,19 +5,25 @@ import java.sql.JDBCType;
 
 import com.example.annotation.Column;
 import com.example.annotation.Id;
+import com.example.annotation.JoinColumn;
+import com.example.annotation.ManyToOne;
 import com.example.annotation.Table;
 
-@Table(name = "subjects") // Bảng "subjects"
+@Table(name = "subjects")
 public class Subject {
     @Id
     @Column(name = "id", type = JDBCType.INTEGER)
     private int id;
 
-    @Column(name = "name", unique = true)
+    @Column(name = "name")
     private String name;
 
     @Column(name = "credit")
     private int credit;
+
+    @ManyToOne
+    @JoinColumn(name = "user_id") // One-to-Many with Users
+    private User user;
 
     // Getters and Setters
     public int getId() {
@@ -44,9 +50,16 @@ public class Subject {
         this.credit = credit;
     }
 
+    public User getUser() {
+        return user;
+    }
+
+    public void setUser(User user) {
+        this.user = user;
+    }
+
     @Override
     public String toString() {
         return "Subject{id=" + id + ", name='" + name + '\'' + ", credit=" + credit + '}';
     }
 }
-
