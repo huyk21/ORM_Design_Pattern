@@ -62,7 +62,7 @@ public class GenericDao<T> {
             }
         }
         
-        session.executeUpdate(sql);
+        
     }
     private Field getIdField() {
     for (Field field : clazz.getDeclaredFields()) {

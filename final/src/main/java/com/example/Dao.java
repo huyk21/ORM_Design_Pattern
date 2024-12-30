@@ -11,7 +11,7 @@ import java.util.Optional;
  * @param <T> The type of the entity.
  */
 public interface Dao<T> {
-    void create(T entity) throws SQLException, IllegalAccessException;
+    void create(T entity) throws SQLException, IllegalAccessException, NoSuchFieldException;
 
     Optional<T> findById(Object id) throws SQLException, ReflectiveOperationException;
 

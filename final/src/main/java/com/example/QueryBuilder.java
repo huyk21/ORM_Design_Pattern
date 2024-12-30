@@ -2,11 +2,15 @@
 package com.example;
 
 import java.lang.reflect.Field;
-import java.util.ArrayList;
-import java.util.List;
+import java.sql.Date;
+import java.sql.Timestamp;
 
 import com.example.annotation.Column;
 import com.example.annotation.Id;
+import com.example.annotation.JoinColumn;
+import com.example.annotation.ManyToOne;
+import com.example.annotation.OneToMany;
+import com.example.annotation.OneToOne;
 import com.example.annotation.Table;
 
 /**
@@ -34,22 +38,63 @@ public class QueryBuilder<T> {
      * @return The SQL INSERT query string.
      * @throws IllegalAccessException If field access fails.
      */
-    public String buildInsertQuery(T entity) throws IllegalAccessException {
-        List<String> columns = new ArrayList<>();
-        List<String> placeholders = new ArrayList<>();
-
+    public String buildInsertQuery(T entity) throws IllegalAccessException, NoSuchFieldException {
+        StringBuilder sql = new StringBuilder("INSERT INTO " + getTableName() + " (");
+        StringBuilder values = new StringBuilder("VALUES (");
+    
         for (Field field : clazz.getDeclaredFields()) {
+            field.setAccessible(true);
+    
+            // Skip fields annotated with @OneToMany or @OneToOne
+            if (field.isAnnotationPresent(OneToMany.class) || field.isAnnotationPresent(OneToOne.class)) {
+                continue;
+            }
+    
+            // Process fields annotated with @Column
             if (field.isAnnotationPresent(Column.class)) {
-                Column column = field.getAnnotation(Column.class);
-                columns.add(column.name());
-                placeholders.add("?");
+                Column columnAnnotation = field.getAnnotation(Column.class);
+                String columnName = columnAnnotation.name();
+                sql.append(columnName).append(", ");
+    
+                Object fieldValue = field.get(entity);
+                if (fieldValue == null) {
+                    values.append("NULL").append(", ");
+                } else if (fieldValue instanceof String || fieldValue instanceof Date || fieldValue instanceof Timestamp) {
+                    values.append("'").append(fieldValue).append("', ");
+                } else {
+                    values.append(fieldValue).append(", ");
+                }
+            }
+    
+            // Process fields annotated with @ManyToOne
+            if (field.isAnnotationPresent(ManyToOne.class)) {
+                JoinColumn joinColumn = field.getAnnotation(JoinColumn.class); // Ensure @JoinColumn is present
+                String columnName = joinColumn.name(); // Get the name of the foreign key column
+                sql.append(columnName).append(", ");
+    
+                Object relatedEntity = field.get(entity);
+                if (relatedEntity == null) {
+                    values.append("NULL").append(", ");
+                } else {
+                    // Assume the related entity has an ID field annotated with @Id
+                    Field idField = relatedEntity.getClass().getDeclaredField("id");
+                    idField.setAccessible(true);
+                    Object relatedId = idField.get(relatedEntity);
+                    values.append(relatedId).append(", ");
+                }
             }
         }
-
-        String columnsPart = String.join(", ", columns);
-        String placeholdersPart = String.join(", ", placeholders);
-
-        return "INSERT INTO " + getTableName() + " (" + columnsPart + ") VALUES (" + placeholdersPart + ")";
+    
+        // Remove trailing commas
+        sql.delete(sql.length() - 2, sql.length());
+        values.delete(values.length() - 2, values.length());
+    
+        sql.append(") ").append(values).append(")");
+    
+        // Debugging: Print the generated SQL
+        System.out.println("Generated INSERT SQL: " + sql);
+    
+        return sql.toString();
     }
 
     /**
@@ -82,19 +127,90 @@ public class QueryBuilder<T> {
      * @throws IllegalAccessException If field access fails.
      */
     public String buildUpdateQuery(T entity, String whereCondition) throws IllegalAccessException {
-        List<String> setClauses = new ArrayList<>();
-
+        StringBuilder sql = new StringBuilder("UPDATE " + getTableName() + " SET ");
+        System.err.println(sql);
         for (Field field : clazz.getDeclaredFields()) {
-            if (field.isAnnotationPresent(Column.class) && !field.isAnnotationPresent(Id.class)) {
+            field.setAccessible(true);
+    
+            // Skip @OneToMany relationships or fields without annotations
+            if (field.isAnnotationPresent(OneToMany.class)) {
+                continue;
+            }
+    
+            String columnName = null;
+            Object value = field.get(entity);
+    
+            // Handle @JoinColumn for relationships (e.g., teacher_id)
+            if (field.isAnnotationPresent(JoinColumn.class)) {
+                JoinColumn joinColumn = field.getAnnotation(JoinColumn.class);
+                columnName = joinColumn.name(); // Get the foreign key column name
+            } else if (field.isAnnotationPresent(Column.class)) {
+                // Handle regular columns
                 Column column = field.getAnnotation(Column.class);
-                setClauses.add(column.name() + " = ?");
+                columnName = column.name(); // Get the column name from the annotation
+            }
+    
+            // If no column name was determined, skip this field
+            if (columnName == null) {
+                continue;
+            }
+    
+            // Append column name and value to the SQL query
+            sql.append(columnName).append(" = ");
+            appendValue(sql, value);
+            sql.append(", ");
+        }
+    
+        // Remove trailing comma
+        if (sql.toString().endsWith(", ")) {
+            sql.delete(sql.length() - 2, sql.length());
+        }
+    
+        // Add WHERE condition
+        if (whereCondition != null && !whereCondition.isEmpty()) {
+            sql.append(" WHERE ").append(whereCondition);
+        } else {
+            throw new IllegalArgumentException("WHERE condition cannot be null or empty for UPDATE query");
+        }
+    
+        return sql.toString();
+    }
+    private void appendValue(StringBuilder sql, Object value) {
+        // Debug: Log the incoming value and its type
+        System.out.println("appendValue: Processing value = " + value + " (Type: " + (value != null ? value.getClass().getName() : "null") + ")");
+    
+        if (value == null) {
+            sql.append("NULL");
+            System.out.println("appendValue: Appended NULL");
+        } else if (value instanceof String || value instanceof Date || value instanceof Timestamp) {
+            sql.append("'").append(value).append("'");
+            System.out.println("appendValue: Appended quoted value = '" + value + "'");
+        } else if (value instanceof Number || value instanceof Boolean) {
+            sql.append(value);
+            System.out.println("appendValue: Appended numeric/boolean value = " + value);
+        } else {
+            // Handle objects (e.g., related entities)
+            try {
+                Field idField = value.getClass().getDeclaredField("id");
+                idField.setAccessible(true);
+                Object idValue = idField.get(value);
+    
+                if (idValue != null) {
+                    sql.append(idValue);
+                    System.out.println("appendValue: Appended related entity ID = " + idValue);
+                } else {
+                    sql.append("NULL");
+                    System.out.println("appendValue: Related entity ID is NULL");
+                }
+            } catch (NoSuchFieldException | IllegalAccessException e) {
+                // Debug: Log the error with context
+                System.err.println("appendValue: Error extracting ID from related entity: " + value);
+                e.printStackTrace();
+                throw new IllegalStateException("Unable to extract ID from related entity: " + value, e);
             }
         }
-
-        String setPart = String.join(", ", setClauses);
-        return "UPDATE " + getTableName() + " SET " + setPart + " WHERE " + whereCondition;
     }
-
+    
     /**
      * Builds a DELETE SQL query with a WHERE condition.
      *

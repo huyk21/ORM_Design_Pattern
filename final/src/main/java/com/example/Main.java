@@ -3,6 +3,7 @@ package com.example;
 
 import java.sql.SQLException;
 import java.util.List;
+import java.util.Optional;
 
 import com.example.client.User;
 import com.example.connection.DatabaseSession;
@@ -131,6 +132,69 @@ public class Main {
             System.out.println("Database connection closed successfully.");
         } catch (SQLException e) {
             System.err.println("Failed to close database connection: " + e.getMessage());
+        }
+    }
+     private static void testCreateOperation(Dao<User> userDao) {
+        System.out.println("Testing Create Operation...");
+        try {
+            User user = new User();
+            user.setUsername("john_doe");
+            user.setEmail("john.doe@example.com");
+            user.setPassword(null); // Explicitly set nullable fields if necessary
+            user.setFullName(null);
+            user.setDateOfBirth(null);
+            user.setActive(false);
+            user.setCreatedAt(null);
+            user.setUpdatedAt(null);
+            user.setClassObject(null);// Add this if `class_id` exists in your schema
+    
+            userDao.create(user);
+            System.out.println("User created with ID: " + user.getId());
+        } catch (Exception e) {
+            System.err.println("Create operation failed: " + e.getMessage());
+            e.printStackTrace();
+        }
+    }
+    
+
+    private static void testReadOperation(Dao<User> userDao) {
+        System.out.println("Testing Read Operation...");
+        try {
+            List<User> users = userDao.read(null); // Read all users
+            System.out.println("Retrieved Users:");
+            for (User user : users) {
+                System.out.println("ID: " + user.getId() + ", Username: " + user.getUsername() + ", Email: " + user.getEmail());
+            }
+        } catch (Exception e) {
+            System.err.println("Read operation failed: " + e.getMessage());
+            e.printStackTrace();
+        }
+    }
+
+    private static void testUpdateOperation(Dao<User> userDao) throws SQLException, ReflectiveOperationException {
+        System.out.println("Testing Update Operation...");
+       
+            Optional<User> user = userDao.findById(13);
+            System.out.println(user.get().getFullName());
+            user.get().setUsername("best");
+            userDao.update(user.get(), "id=13");
+            System.out.println("User updated successfully.");
+    }
+
+    private static void testDeleteOperation(Dao<User> userDao) {
+        System.out.println("Testing Delete Operation...");
+        try {
+            List<User> users = userDao.read("username = 'john_doe'");
+            if (!users.isEmpty()) {
+                User user = users.get(0);
+                userDao.delete("id = " + user.getId());
+                System.out.println("User deleted successfully.");
+            } else {
+                System.out.println("No user found to delete.");
+            }
+        } catch (Exception e) {
+            System.err.println("Delete operation failed: " + e.getMessage());
+            e.printStackTrace();
         }
     }
 }

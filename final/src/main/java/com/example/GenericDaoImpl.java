@@ -25,7 +25,7 @@
         }
 
         @Override
-        protected String buildInsertQuery(T entity) throws IllegalAccessException {
+        protected String buildInsertQuery(T entity) throws IllegalAccessException, NoSuchFieldException {
             return queryBuilder.buildInsertQuery(entity);
         }
 
