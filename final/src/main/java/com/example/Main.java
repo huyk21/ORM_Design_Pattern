@@ -5,21 +5,28 @@ import java.sql.SQLException;
 import java.sql.Timestamp;
 
 import com.example.client.User;
-import com.example.connection.DatabaseSession;
-import com.example.connection.MySQLConnectionFactory;
+import com.example.connection.*;
 
 public class Main {
 
     public static void main(String[] args) {
         // Create the MySQL connection factory
         MySQLConnectionFactory factory = MySQLConnectionFactory.createDefault(
-                "localhost", "3306", "damframework", "root", "ducanh123"
-        );
+                "localhost", "3306", "ORMX", "root", "mysql");
+
+        // Create the PostgreSQL connection factory
+//        PostgreSQLConnectionFactory factory = PostgreSQLConnectionFactory.createDefault(
+//                "localhost", "5432", "ORMX", "postgres", "postgres");
+
+        // Create the Sql Server connection factory
+//        SqlServerConnectionFactory factory = SqlServerConnectionFactory.createDefault(
+//                "localhost", "1433", "ORMX", "sa", "SQLServer123@");
 
         DatabaseSession session = null;
 
         try {
             // Initialize the session
+
             session = new DatabaseSession(factory);
             System.out.println("Database connection established.");
 
@@ -29,14 +36,14 @@ public class Main {
             GenericDao<User> userDao = new GenericDao<>(session, User.class);
 
             // Lazily load a user
-            System.out.println("Attempting to lazily load user with ID 122...");
-            User lazyUser = userDao.getLazy(User.class, 122);
+            System.out.println("Attempting to lazily load user with ID 1...");
+            User lazyUser = userDao.getLazy(User.class, 1);
 
             if (lazyUser != null) {
                 // Access properties to trigger lazy loading
                 System.out.println("User Full Name: " + lazyUser.getFullName());
             } else {
-                System.out.println("User not found for ID 122.");
+                System.out.println("User not found for ID 1.");
             }
 
             // Insert a new user for rollback testing

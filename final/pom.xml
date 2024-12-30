@@ -21,6 +21,23 @@
             <version>9.1.0</version>
         </dependency>
 
+        <!--Postgres JDBC Driver-->
+        <!-- https://mvnrepository.com/artifact/org.postgresql/postgresql -->
+        <dependency>
+            <groupId>org.postgresql</groupId>
+            <artifactId>postgresql</artifactId>
+            <version>42.7.4</version>
+        </dependency>
+
+        <!-- SQL Server JDBC Driver -->
+        <!-- https://mvnrepository.com/artifact/com.microsoft.sqlserver/mssql-jdbc -->
+        <dependency>
+            <groupId>com.microsoft.sqlserver</groupId>
+            <artifactId>mssql-jdbc</artifactId>
+            <version>12.8.1.jre11</version>
+        </dependency>
+
+
         <!-- HikariCP (Database Connection Pool) -->
         <dependency>
             <groupId>com.zaxxer</groupId>
