@@ -525,6 +525,7 @@ public static class SelectBuilder {
             }
         }
     }
+    
         // Initialize a new StringBuilder for each query
         StringBuilder query = new StringBuilder("SELECT ");
     

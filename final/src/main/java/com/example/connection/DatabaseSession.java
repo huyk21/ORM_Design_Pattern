@@ -18,6 +18,8 @@ public class DatabaseSession {
         this.connection = factory.createConnection();
     }
 
+   
+
     // Getter for connection
     public Connection getConnection() {
         return connection;
