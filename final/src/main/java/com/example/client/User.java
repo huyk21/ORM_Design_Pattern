@@ -19,6 +19,7 @@ public class User {
     @Id
     @Column(name = "id", type = JDBCType.INTEGER)
     private int id;
+    
     @NotNull(message = "Username cannot be null.")
     @Alphanumeric()
     @Column(name = "username")
