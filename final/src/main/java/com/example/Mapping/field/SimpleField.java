@@ -11,8 +11,12 @@ import com.example.Mapping.visitor.SQLFieldVisitor;
 import com.example.annotation.Column;
 
 public class SimpleField extends SQLField {
-    public SimpleField(Field field, Class<?> clazz, ParentInterface parent) {
-        super(field, clazz, parent);
+    public SimpleField(Field field, ParentInterface parent) {
+        super(field, parent);
+    }
+
+    public void setIndex(int index) {
+        this.index = index;
     }
 
     @Override

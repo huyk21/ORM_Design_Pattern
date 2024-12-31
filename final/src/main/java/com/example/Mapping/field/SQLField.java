@@ -13,8 +13,8 @@ public abstract class SQLField {
     protected int index;
     protected ParentInterface parent;
 
-    protected SQLField(Field field, Class<?> clazz, ParentInterface parent) {
-        this.clazz = clazz;
+    protected SQLField(Field field, ParentInterface parent) {
+        this.clazz = field.getType();
         this.field = field;
         this.parent = parent;
         this.field.setAccessible(true);
@@ -32,8 +32,8 @@ public abstract class SQLField {
         return index;
     }
 
-    public final void setIndex(int index) {
-        this.index = index;
+    public final ParentInterface getParent() {
+        return parent;
     }
 
     public Object createObject() {

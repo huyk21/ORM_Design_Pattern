@@ -17,20 +17,17 @@ import com.example.annotation.OneToMany;
 import com.example.annotation.OneToOne;
 
 public class FieldFactoryVisitor implements SQLFieldVisitor {
-
-    @SuppressWarnings("unchecked")
-    private SQLField create(Field field, Class<?> clazz, ParentInterface parent) {
+    private SQLField create(Field field, ParentInterface parent) {
         if (field.isAnnotationPresent(OneToOne.class)) {
-            return new OneToOneField(field, clazz, parent);
-        } 
-        else if (field.isAnnotationPresent(OneToMany.class)) {
-            if (!Collection.class.isAssignableFrom(clazz)) {
-                throw new IllegalArgumentException("Field is not a collection");
+            return new OneToOneField(field, parent);
+        } else if (field.isAnnotationPresent(OneToMany.class)) {
+            if (!Collection.class.isAssignableFrom(field.getType())) {
+                throw new IllegalArgumentException(
+                        "OneToMany field is not a collection: " + field.getName());
             }
-            return new OneToManyField(field, (Class<? extends Collection<Object>>) clazz, parent);
-        } 
-        else {
-            return new SimpleField(field, clazz, parent);
+            return new OneToManyField(field, parent);
+        } else {
+            return new SimpleField(field, parent);
         }
     }
 
@@ -39,14 +36,14 @@ public class FieldFactoryVisitor implements SQLFieldVisitor {
         List<SQLField> sqlFields = new ArrayList<>();
 
         for (Field f : rawFields) {
-            sqlFields.add(create(f, f.getType(), parent));
+            sqlFields.add(create(f, parent));
         }
 
         Class<?> superClass = clazz.getSuperclass();
         while (superClass != null) {
             rawFields = Arrays.asList(superClass.getDeclaredFields());
             for (Field f : rawFields) {
-                sqlFields.add(create(f, f.getType(), parent));
+                sqlFields.add(create(f, parent));
             }
 
             superClass = superClass.getSuperclass();
@@ -88,6 +85,7 @@ public class FieldFactoryVisitor implements SQLFieldVisitor {
         visit((RelationField) field);
     }
 
+    @Override
     public void visit(TableMapping<?> field) {
         field.setSQLFields(generateField(field.getClazz(), field));
     }

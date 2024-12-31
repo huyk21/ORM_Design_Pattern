@@ -1,6 +1,5 @@
 package com.example.Mapping.field;
 
-import java.lang.reflect.InvocationTargetException;
 import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.util.ArrayList;
@@ -133,9 +132,13 @@ public class TableMapping<T> implements ParentInterface {
         return objectFields.get(getIdFieldIndex()).getName();
     }
 
-    public T createObject()
-            throws InstantiationException, IllegalAccessException, IllegalArgumentException,
-            InvocationTargetException, NoSuchMethodException, SecurityException {
-        return clazz.getConstructor().newInstance();
+    public T createObject() {
+        try {
+            return clazz.getConstructor().newInstance();
+        } catch (Exception e) {
+            e.printStackTrace();
+            return null;
+        }
+        
     }
 }

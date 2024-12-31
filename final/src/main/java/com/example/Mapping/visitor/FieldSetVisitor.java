@@ -48,7 +48,6 @@ public class FieldSetVisitor implements SQLFieldVisitor {
             return;
     }
 
-    @Override
     public void visit(TableMapping<?> field) {
         List<SQLField> fields = field.getSQLFields();
 

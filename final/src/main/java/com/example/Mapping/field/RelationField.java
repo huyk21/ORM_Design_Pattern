@@ -7,7 +7,6 @@ import java.util.ArrayList;
 import java.util.List;
 
 import com.example.annotation.Id;
-import com.example.annotation.Table;
 
 public abstract class RelationField extends SQLField implements ParentInterface {
     protected List<SQLField> objectFields;
@@ -17,8 +16,9 @@ public abstract class RelationField extends SQLField implements ParentInterface 
     protected String mappingName;
     protected boolean isJoin;
 
-    protected RelationField(Field field, Class<?> clazz, ParentInterface parent) {
-        super(field, clazz, parent);
+
+    protected RelationField(Field field, ParentInterface parent) {
+        super(field, parent);
         this.mappingName = "";
         this.isJoin = false;
         this.objectFields = new ArrayList<>();

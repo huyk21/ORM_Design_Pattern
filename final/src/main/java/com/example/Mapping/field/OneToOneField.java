@@ -9,8 +9,8 @@ import com.example.annotation.OneToOne;
 import com.example.annotation.Table;
 
 public class OneToOneField extends RelationField {
-    public OneToOneField(Field field, Class<?> clazz, ParentInterface parent) {
-        super(field, clazz, parent);
+    public OneToOneField(Field field, ParentInterface parent) {
+        super(field, parent);
 
         tableName = clazz.getAnnotation(Table.class).name();
         if (tableName == "") {
@@ -42,6 +42,23 @@ public class OneToOneField extends RelationField {
     }
 
     @Override
+    protected String toFromString() {
+        if (!isJoin) {
+            return "";
+        }
+        
+        if (field.getAnnotation(OneToOne.class).refInOther()) {
+            return " join " + tableName + " " + mappingName 
+                + " on " + parent.getMappingName() + "." + parent.getIdColumnName() 
+                + " = " + mappingName + "." + getRefColumnName();
+        }
+
+        return " join " + tableName + " " + mappingName 
+            + " on " + parent.getMappingName() + "." + getRefColumnName() 
+            + " = " + mappingName + "." + getIdColumnName();
+    }
+
+    @Override
     public void accept(SQLFieldVisitor visitor) {
         visitor.visit(this);
     }
@@ -50,7 +67,7 @@ public class OneToOneField extends RelationField {
     public String getRefColumnName() throws IllegalArgumentException {
         String refName = field.getAnnotation(OneToOne.class).mappedBy();
         if (refName == "") {
-            throw new IllegalArgumentException("No reference name found");
+            throw new IllegalArgumentException("No reference name found on OneToOne annotation: " + field.getName());
         }
         return refName;
     }

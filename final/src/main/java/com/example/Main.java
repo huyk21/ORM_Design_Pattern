@@ -2,9 +2,7 @@ package com.example;
 
 import java.util.List;
 
-import java.sql.Date;
 import java.sql.SQLException;
-import java.sql.Timestamp;
 
 import com.example.client.User;
 import com.example.client.Classroom;
@@ -30,9 +28,9 @@ public class Main {
             session = new DatabaseSession(factory);
 
             // Create a GenericDao for the User entity
-            GenericDao<Classroom> dao = new GenericDao<>(session, Classroom.class);
+            GenericDao<Classroom> classdao = new GenericDao<>(session, Classroom.class);
 
-            List<Classroom> classes = dao.select().join("root", "students", "s").get();
+            List<Classroom> classes = classdao.select("c").join("c", "students", "s").get();
             for (var classroom : classes) {
                 System.out.println(classroom.getName());
                 for (var student : classroom.getStudents()) {
@@ -41,6 +39,16 @@ public class Main {
             }
             System.out.println("------");
 
+            GenericDao<User> userdao = new GenericDao<>(session, User.class);
+
+            List<User> users = userdao.select("u").join("u", "teacher", "t").get();
+            for (var user : users) {
+                System.out.print(user.getFullName() + " - ");
+                System.out.println(user.getTeacher().getFullName());
+            }
+            System.out.println("------");
+
+            /* 
             // Start a transaction
             session.beginTransaction();
 
@@ -68,14 +76,12 @@ public class Main {
             newUser.setUpdatedAt(new Timestamp(System.currentTimeMillis()));
             System.out.println("Saving new user...");
             userDao.create(newUser);
-            System.out.println("User saved successfully.");
-
-            
+            System.out.println("User saved successfully.");            
 
             // Commit transaction
             session.commitTransaction();
             System.out.println("Transaction committed successfully.");
-
+            */
         } catch (Exception e) {
             // Rollback transaction if an error occurs
             if (session != null) {
@@ -100,5 +106,6 @@ public class Main {
                 }
             }
         }
+            
     }
 }

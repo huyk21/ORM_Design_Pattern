@@ -134,8 +134,8 @@ public class GenericDao<T> {
         return results;
     }
     
-    public SelectQuery<T> select() {
-        return new SelectQuery<>(session, clazz);
+    public SelectQuery<T> select(String mappingName) {
+        return new SelectQuery<>(session, clazz, mappingName);
     }
 
     // Helper method to build an INSERT query

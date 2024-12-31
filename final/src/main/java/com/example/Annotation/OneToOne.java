@@ -9,4 +9,5 @@ import java.lang.annotation.Target;
 
 public @interface OneToOne {
     String mappedBy() default "";
+    boolean refInOther() default false;
 }

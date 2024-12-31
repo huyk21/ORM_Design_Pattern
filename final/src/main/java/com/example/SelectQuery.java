@@ -13,19 +13,20 @@ public class SelectQuery<T> {
     private DatabaseSession session;
 
     private String sqlWhere;
+    private String sqlOrderBy;
 
     private TableMapping<T> tableMapping;
 
-    protected SelectQuery(DatabaseSession session, Class<T> returnType) {
+    protected SelectQuery(DatabaseSession session, Class<T> returnType, String mappingName) {
         this.session = session;
 
-        tableMapping = new TableMapping<T>(returnType, "root");
+        tableMapping = new TableMapping<T>(returnType, mappingName);
 
         sqlWhere = "";
     }
 
-    public SelectQuery<T> join(String table, String field, String name) {
-        tableMapping.join(table, field, name);
+    public SelectQuery<T> join(String table, String field, String mappingName) {
+        tableMapping.join(table, field, mappingName);
 
         return this;
     }
@@ -36,7 +37,8 @@ public class SelectQuery<T> {
         return this;
     }
 
-    public SelectQuery<T> orderBy() {
+    public SelectQuery<T> orderBy(String orderBy) {
+        sqlOrderBy = "\norder by " + orderBy;
         return this;
     }
 
@@ -87,6 +89,7 @@ public class SelectQuery<T> {
         builder.append(tableMapping.getQueryString());
         builder.append(tableMapping.getFromString());
         builder.append(sqlWhere);
+        builder.append(sqlOrderBy);
         builder.append(";");
 
         return builder.toString();

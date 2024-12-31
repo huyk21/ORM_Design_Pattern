@@ -12,12 +12,12 @@ import com.example.annotation.OneToMany;
 import com.example.annotation.Table;
 
 public class OneToManyField extends RelationField {
-    Class<? extends Collection<Object>> collectionClass;
+    Class<?> collectionClass;
 
-    public OneToManyField(Field field, Class<? extends Collection<Object>> clazz, ParentInterface parent) {
-        super(field, clazz, parent);
+    public OneToManyField(Field field, ParentInterface parent) {
+        super(field, parent);
 
-        collectionClass = clazz;
+        collectionClass = field.getType();
 
         this.clazz = getCollectionGenericClass(field);
 
@@ -27,6 +27,7 @@ public class OneToManyField extends RelationField {
         }
     }
 
+    @SuppressWarnings("unchecked")
     @Override
     public void setFields(Object parentObject, ResultSet resultSet)
             throws IllegalArgumentException, IllegalAccessException, SQLException {
@@ -34,11 +35,11 @@ public class OneToManyField extends RelationField {
         if (!isJoin)
             return;
 
-        @SuppressWarnings("unchecked")
         Collection<Object> collection = (Collection<Object>) field.get(parentObject);
+        
         if (collection == null) {
             try {
-                collection = collectionClass.getConstructor().newInstance();
+                collection = (Collection<Object>) collectionClass.getConstructor().newInstance();
             } catch (Exception e) {
                 e.printStackTrace();
             }
