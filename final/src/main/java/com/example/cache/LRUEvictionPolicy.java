@@ -1,5 +1,6 @@
 package com.example.cache;
 
+import java.util.LinkedHashMap;
 import java.util.Map;
 
 public class LRUEvictionPolicy<K, V> implements EvictionPolicy<K, V> {
@@ -16,6 +17,11 @@ public class LRUEvictionPolicy<K, V> implements EvictionPolicy<K, V> {
 
     @Override
     public K getEvictionKey(Map<K, V> cache) {
-        return cache.keySet().iterator().next(); // Returns the least recently used key
+         if (cache instanceof LinkedHashMap) {
+            // Access-order LinkedHashMap maintains LRU as the last element
+            return cache.keySet().iterator().next(); // Returns the least recently used key
+        }
+        throw new IllegalArgumentException("Cache must be a LinkedHashMap with access-order enabled for LRU to work");
     }
+    
 }
