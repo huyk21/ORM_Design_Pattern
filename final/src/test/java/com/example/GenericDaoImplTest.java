@@ -21,7 +21,7 @@ import com.example.connection.DatabaseSession;
 import com.example.connection.MySQLConnectionFactory;
 import com.example.entity.GenericDaoImpl;
 
-public class GenericDaoTest {
+public class GenericDaoImplTest {
     private static DatabaseSession session;
     private static ArrayList<User> createdUser;
 
@@ -29,7 +29,7 @@ public class GenericDaoTest {
     public static void setUpClass() throws SQLException {
         // Initialize the DatabaseSession with the test database
         MySQLConnectionFactory factory = MySQLConnectionFactory.createDefault(
-                "localhost", "3306", "orm_test", "root", "mysql"
+                "localhost", "3306", "ORMX", "root", "mysql"
         );
         session = new DatabaseSession(factory);
 
@@ -73,12 +73,12 @@ public class GenericDaoTest {
         user.setFullName("Test student 1");
         user.setDateOfBirth(new Date(33, 11, 29));
 
-        var dao = new GenericDao<User>(session, User.class);
-        
+        var dao = new GenericDaoImpl<User>(session, User.class);
+
         assertDoesNotThrow(() -> {
             dao.create(user);
             createdUser.add(user);
-    
+
             compareUserTest(user, user);
         });
     }
@@ -92,27 +92,27 @@ public class GenericDaoTest {
         user.setActive(false);
         user.setFullName(null);
 
-        var dao = new GenericDao<User>(session, User.class);
+        var dao = new GenericDaoImpl<User>(session, User.class);
 
         assertDoesNotThrow(() -> {
             dao.create(user);
             createdUser.add(user);
-    
+
             compareUserTest(user, user);
         });
     }
 
     @Test
     public void testDynamicJoinBuilder() {
-        var dao = new GenericDao<User>(session, User.class);
+        var dao = new GenericDaoImpl<User>(session, User.class);
         var builder = dao.dynamicJoinBuilder();
-        
+
         // change to other
     }
 
     @Test
     public void testFindById() {
-        var dao = new GenericDao<User>(session, User.class);
+        var dao = new GenericDaoImpl<User>(session, User.class);
         User target = new User();
 
         target.setId(3);
@@ -132,7 +132,7 @@ public class GenericDaoTest {
 
     @Test
     public void testGetLazy() {
-        var dao = new GenericDao<User>(session, User.class);
+        var dao = new GenericDaoImpl<User>(session, User.class);
         User target = new User();
 
         target.setId(3);
@@ -144,13 +144,13 @@ public class GenericDaoTest {
         target.setDateOfBirth(new Date(1109782800000l));
 
         var user = dao.getLazy(User.class, target.getId());
-        
+
         compareUserTest(user, target);
     }
 
     @Test
     public void testRead() {
-        var dao = new GenericDao<User>(session, User.class);
+        var dao = new GenericDaoImpl<User>(session, User.class);
 
         assertDoesNotThrow(() -> {
             User target = dao.findById(3).get();
@@ -164,6 +164,7 @@ public class GenericDaoTest {
 
     }
 
+
     @Test
     public void testUpdate() {
         
@@ -171,12 +172,12 @@ public class GenericDaoTest {
 
     @Test
     public void testDelete() {
-        var dao = new GenericDao<User>(session, User.class);
+        var dao = new GenericDaoImpl<User>(session, User.class);
 
         assertDoesNotThrow(() -> {
             dao.delete("is_active = 0");
             var users = dao.read("");
             assertEquals(users.size(), 5);
         });
-    }   
+    }
 }

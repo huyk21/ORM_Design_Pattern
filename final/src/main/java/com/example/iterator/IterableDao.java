@@ -4,8 +4,8 @@ import java.sql.ResultSet;
 import java.sql.SQLException;
 
 import com.example.EntityMapper;
-import com.example.GenericDaoImpl;
 import com.example.connection.DatabaseSession;
+import com.example.entity.GenericDaoImpl;
 
 public class IterableDao<T> extends GenericDaoImpl<T> {
     public IterableDao(DatabaseSession session, Class<T> clazz) {

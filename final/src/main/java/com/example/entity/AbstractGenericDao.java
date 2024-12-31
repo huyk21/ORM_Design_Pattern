@@ -19,7 +19,6 @@ import com.example.annotation.Column;
 import com.example.annotation.Id;
 import com.example.annotation.JoinColumn;
 import com.example.annotation.OneToMany;
-import com.example.annotation.Table;
 import com.example.connection.DatabaseSession;
 import com.example.lazyloading.LazyInitializer;
 
@@ -49,7 +48,6 @@ public abstract class AbstractGenericDao<T> implements Dao<T> {
         this.queryBuilder = new QueryBuilder<>(clazz);
         this.metadata = new EntityMetadata(clazz);
     }
-    
 
     @Override
     public void create(T entity) throws SQLException, IllegalAccessException, NoSuchFieldException {
@@ -100,8 +98,8 @@ public abstract class AbstractGenericDao<T> implements Dao<T> {
                         if (field.getType() == Integer.class || field.getType() == int.class) {
                             field.set(entity, foreignKeyValue); // Store foreign key
                         } else {
-                            // Eagerly fetch related entity
-                            GenericDao<?> relatedDao = new GenericDao<>(session, field.getType());
+                            // Create appropriate DAO instance for related entity
+                            AbstractGenericDao<?> relatedDao = new GenericDaoImpl<>(session, field.getType());
                             Object relatedEntity = relatedDao.findById(foreignKeyValue).orElse(null);
                             field.set(entity, relatedEntity);
                         }

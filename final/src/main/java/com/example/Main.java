@@ -12,6 +12,8 @@ import com.example.cache.LRUEvictionPolicy;
 import com.example.client.User;
 import com.example.connection.DatabaseSession;
 import com.example.connection.MySQLConnectionFactory;
+import com.example.entity.Dao;
+import com.example.entity.GenericDaoImpl;
 import com.example.validator.AlphanumericValidator;
 import com.example.validator.ValidationProcessor;
 
@@ -25,7 +27,7 @@ public class Main {
         try {
             // Step 1: Create the MySQL connection factory with your database credentials
             MySQLConnectionFactory factory = MySQLConnectionFactory.createDefault(
-                    "localhost", "3306", "damframework", "root", "ducanh123"
+                    "localhost", "3306", "ORMX", "root", "mysql"
             );
 
             // Step 2: Initialize the database session using the connection factory
@@ -45,6 +47,8 @@ public class Main {
             // Step 6: Commit transaction
             session.commitTransaction();
             System.out.println("Transaction committed successfully.");
+            testSelectOperations(userDao);
+
         } catch (Exception e) {
             // Step 7: Rollback transaction on error
             System.err.println("Error occurred, rolling back transaction: " + e.getMessage());
