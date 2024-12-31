@@ -15,6 +15,9 @@ public class ColumnMetadata {
     private final boolean isUnique;
     private final boolean isNullable;
     private final boolean isForeignKey;
+    private final Integer length;
+    private final Integer precision;
+    private final Id idAnnotation;
 
     /**
      * Constructor that extracts column information from a field.
@@ -26,6 +29,7 @@ public class ColumnMetadata {
         this.field = field;
         this.isId = field.isAnnotationPresent(Id.class);
         this.isForeignKey = field.isAnnotationPresent(JoinColumn.class);
+        this.idAnnotation = field.getAnnotation(Id.class);
 
         Column column = field.getAnnotation(Column.class);
         JoinColumn joinColumn = field.getAnnotation(JoinColumn.class);
@@ -35,20 +39,22 @@ public class ColumnMetadata {
             this.jdbcType = column.type();
             this.isUnique = column.unique();
             this.isNullable = column.nullable();
+            this.length = column.length();
+            this.precision = column.precision();
         } else if (joinColumn != null) {
             this.columnName = joinColumn.name();
             this.jdbcType = JDBCType.INTEGER; // Assuming foreign key is an integer
             this.isUnique = false;
             this.isNullable = joinColumn.nullable();
+            this.length = null;
+            this.precision = null;
         } else {
             throw new IllegalStateException("Field must have @Column or @JoinColumn");
         }
     }
 
     private String resolveColumnName(Field field, String annotationName) {
-        return annotationName.isEmpty() ?
-                EntityUtils.convertToSnakeCase(field.getName()) :
-                annotationName;
+        return annotationName.isEmpty() ? EntityUtils.convertToSnakeCase(field.getName()) : annotationName;
     }
 
     // Add value handling methods
@@ -99,6 +105,18 @@ public class ColumnMetadata {
 
     public boolean isId() {
         return isId;
+    }
+
+    public Id getIdAnnotation() {
+        return idAnnotation;
+    }
+
+    public Integer getLength() {
+        return length;
+    }
+
+    public Integer getPrecision() {
+        return precision;
     }
 
     public JDBCType getJdbcType() {

@@ -9,7 +9,6 @@ import com.example.annotation.Column;
 import com.example.annotation.Id;
 import com.example.annotation.JoinColumn;
 import com.example.annotation.ManyToOne;
-import com.example.annotation.OneToOne;
 import com.example.annotation.OneToMany;
 import com.example.annotation.Table;
 import com.example.annotation.validator.Alphanumeric;
