@@ -12,13 +12,17 @@ import com.example.annotation.ManyToOne;
 import com.example.annotation.OneToOne;
 import com.example.annotation.OneToMany;
 import com.example.annotation.Table;
+import com.example.annotation.validator.Alphanumeric;
+import com.example.annotation.validator.NotNull;
 
 @Table(name = "users")
 public class User {
     @Id
     @Column(name = "id", type = JDBCType.INTEGER)
     private int id;
-
+    
+    @NotNull(message = "Username cannot be null.")
+    @Alphanumeric()
     @Column(name = "username")
     private String username;
 
