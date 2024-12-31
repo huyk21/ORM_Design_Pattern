@@ -1,9 +1,11 @@
 // File: Dao.java
-package com.example;
+package com.example.entity;
 
 import java.sql.SQLException;
 import java.util.List;
 import java.util.Optional;
+
+import com.example.SelectBuilder;
 
 /**
  * Generic DAO Interface defining CRUD operations and select functionality.

@@ -12,6 +12,7 @@ import org.junit.Test;
 import com.example.client.User;
 import com.example.connection.DatabaseSession;
 import com.example.connection.MySQLConnectionFactory;
+import com.example.entity.GenericDaoImpl;
 
 public class GenericDaoTest {
     private static DatabaseSession session;

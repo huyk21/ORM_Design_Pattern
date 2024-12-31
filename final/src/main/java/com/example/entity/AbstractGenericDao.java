@@ -1,5 +1,5 @@
 // File: AbstractGenericDao.java
-package com.example;
+package com.example.entity;
 
 import java.lang.annotation.Annotation;
 import java.lang.reflect.Field;
@@ -12,6 +12,9 @@ import java.util.List;
 import java.util.Optional;
 import java.util.concurrent.Callable;
 
+import com.example.EntityMapper;
+import com.example.QueryBuilder;
+import com.example.SelectBuilder;
 import com.example.annotation.Column;
 import com.example.annotation.Id;
 import com.example.annotation.JoinColumn;
@@ -31,6 +34,7 @@ public abstract class AbstractGenericDao<T> implements Dao<T> {
     protected final Class<T> clazz;
     protected final EntityMapper<T> mapper;
     protected final QueryBuilder<T> queryBuilder;
+    protected final EntityMetadata metadata;
 
     /**
      * Constructor initializing the DAO with a database session and entity class.
@@ -43,41 +47,10 @@ public abstract class AbstractGenericDao<T> implements Dao<T> {
         this.clazz = clazz;
         this.mapper = new EntityMapper<>(clazz, session);
         this.queryBuilder = new QueryBuilder<>(clazz);
+        this.metadata = new EntityMetadata(clazz);
     }
-    private String getTableName() {
-        Table tableAnnotation = clazz.getAnnotation(Table.class);
-        if (tableAnnotation != null && !tableAnnotation.name().isEmpty()) {
-            return tableAnnotation.name();
-        }
+    
 
-        // Fallback to class name and convert to snake_case
-        return convertToSnakeCase(clazz.getSimpleName());
-    }
- // Helper method to convert camelCase or PascalCase to snake_case
- private String convertToSnakeCase(String input) {
-    StringBuilder result = new StringBuilder();
-
-    // Iterate over each character in the class name
-    for (char c : input.toCharArray()) {
-        if (Character.isUpperCase(c)) {
-            if (result.length() > 0) {
-                result.append('_');  // Add an underscore before uppercase letters
-            }
-            result.append(Character.toLowerCase(c));  // Convert uppercase to lowercase
-        } else {
-            result.append(c);
-        }
-    }
-    return result.toString();
-}
-    private Field getIdField() {
-        for (Field field : clazz.getDeclaredFields()) {
-            if (field.isAnnotationPresent(Id.class)) {
-                return field;
-            }
-        }
-                return null;
-    }
     @Override
     public void create(T entity) throws SQLException, IllegalAccessException, NoSuchFieldException {
         String sql = buildInsertQuery(entity);
@@ -100,29 +73,29 @@ public abstract class AbstractGenericDao<T> implements Dao<T> {
 
     @Override
     public List<T> read(String whereCondition) throws SQLException, ReflectiveOperationException {
-      String query = "SELECT * FROM " + getTableName();
+        String query = "SELECT * FROM " + metadata.getTableName();
         if (whereCondition != null && !whereCondition.isEmpty()) {
             query += " WHERE " + whereCondition;
         }
-    
+
         System.out.println("Executing SQL Query: " + query); // Debug SQL query
-    
+
         ResultSet rs = session.executeQuery(query);
         List<T> results = new ArrayList<>();
-    
+
         while (rs.next()) {
-            T entity = clazz.getDeclaredConstructor().newInstance();  // Create a new instance of the entity
+            T entity = clazz.getDeclaredConstructor().newInstance(); // Create a new instance of the entity
             System.out.println("Mapping ResultSet to Entity: " + clazz.getSimpleName()); // Debug entity mapping
-    
+
             for (Field field : clazz.getDeclaredFields()) {
                 field.setAccessible(true);
-    
+
                 // Handle @JoinColumn for relationships
                 if (field.isAnnotationPresent(JoinColumn.class)) {
                     JoinColumn joinColumn = field.getAnnotation(JoinColumn.class);
                     String joinColumnName = joinColumn.name();
                     Object foreignKeyValue = rs.getObject(joinColumnName);
-    
+
                     if (foreignKeyValue != null) {
                         if (field.getType() == Integer.class || field.getType() == int.class) {
                             field.set(entity, foreignKeyValue); // Store foreign key
@@ -135,12 +108,12 @@ public abstract class AbstractGenericDao<T> implements Dao<T> {
                     }
                     continue;
                 }
-    
+
                 // Skip @OneToMany
                 if (field.isAnnotationPresent(OneToMany.class)) {
                     continue; // ORM will handle this automatically if required
                 }
-    
+
                 // Map regular columns
                 if (field.isAnnotationPresent(Column.class)) {
                     String columnName = field.getAnnotation(Column.class).name();
@@ -150,7 +123,7 @@ public abstract class AbstractGenericDao<T> implements Dao<T> {
                     }
                 }
             }
-    
+
             results.add(entity);
         }
         return results;
@@ -159,7 +132,7 @@ public abstract class AbstractGenericDao<T> implements Dao<T> {
     @Override
     public void update(T entity, String whereCondition) throws SQLException, IllegalAccessException {
         String sql = buildUpdateQuery(entity, whereCondition);
-       
+
         executeUpdate(sql, entity);
     }
 
@@ -186,7 +159,7 @@ public abstract class AbstractGenericDao<T> implements Dao<T> {
         } else {
             // Use executeQuery for simple SELECT operations
             try (PreparedStatement stmt = session.getConnection().prepareStatement(selectQuery);
-                 ResultSet rs = stmt.executeQuery()) {
+                    ResultSet rs = stmt.executeQuery()) {
                 int columnCount = rs.getMetaData().getColumnCount();
 
                 while (rs.next()) {
@@ -228,25 +201,25 @@ public abstract class AbstractGenericDao<T> implements Dao<T> {
      *
      * @param sql    The SQL statement to execute.
      * @param entity The entity to bind parameters (can be null for DELETE).
-     * @throws SQLException If a database access error occurs.
+     * @throws SQLException           If a database access error occurs.
      * @throws IllegalAccessException If field access fails.
      */
     protected void executeUpdate(String sql, T entity) throws SQLException, IllegalAccessException {
         // Print the SQL statement for debugging
         System.out.println("Executing SQL: " + sql);
-    
+
         // Prepare the statement
         try (PreparedStatement stmt = session.getConnection().prepareStatement(sql, Statement.RETURN_GENERATED_KEYS)) {
             // Execute the update
             stmt.executeUpdate();
-    
+
             // Retrieve and set the generated keys if applicable
             try (ResultSet generatedKeys = stmt.getGeneratedKeys()) {
                 if (generatedKeys.next()) {
-                    Field idField = getIdField(); // Get the @Id field
+                    Field idField = metadata.getIdField(); // Get the @Id field
                     idField.setAccessible(true);
                     Object key = generatedKeys.getObject(1);
-    
+
                     if (idField.getType() == int.class || idField.getType() == Integer.class) {
                         idField.set(entity, ((Number) key).intValue()); // Convert to int
                     } else if (idField.getType() == long.class || idField.getType() == Long.class) {
@@ -257,26 +230,22 @@ public abstract class AbstractGenericDao<T> implements Dao<T> {
                 }
             }
         }
-    
-        
+
     }
-    
-        
-        
-    
 
     /**
      * Binds entity fields to the PreparedStatement parameters.
      *
      * @param stmt   The PreparedStatement.
      * @param entity The entity whose fields are to be bound.
-     * @throws SQLException If a database access error occurs.
+     * @throws SQLException           If a database access error occurs.
      * @throws IllegalAccessException If field access fails.
      */
     protected void bindParameters(PreparedStatement stmt, T entity) throws SQLException, IllegalAccessException {
         int index = 1;
         for (Field field : clazz.getDeclaredFields()) {
-            if (field.isAnnotationPresent((Class<? extends Annotation>) Column.class) && !field.isAnnotationPresent((Class<? extends Annotation>) Id.class)) {
+            if (field.isAnnotationPresent((Class<? extends Annotation>) Column.class)
+                    && !field.isAnnotationPresent((Class<? extends Annotation>) Id.class)) {
                 field.setAccessible(true);
                 Object value = field.get(entity);
                 stmt.setObject(index++, value);
@@ -311,7 +280,8 @@ public abstract class AbstractGenericDao<T> implements Dao<T> {
     protected abstract String buildSelectByIdQuery(Object id);
 
     /**
-     * Builds the READ SQL query with a WHERE condition. Must be implemented by subclasses.
+     * Builds the READ SQL query with a WHERE condition. Must be implemented by
+     * subclasses.
      *
      * @param whereCondition The WHERE condition.
      * @return The SQL SELECT query string.
@@ -329,7 +299,8 @@ public abstract class AbstractGenericDao<T> implements Dao<T> {
     protected abstract String buildUpdateQuery(T entity, String whereCondition) throws IllegalAccessException;
 
     /**
-     * Builds the DELETE SQL query with a WHERE condition. Must be implemented by subclasses.
+     * Builds the DELETE SQL query with a WHERE condition. Must be implemented by
+     * subclasses.
      *
      * @param whereCondition The WHERE condition.
      * @return The SQL DELETE query string.
@@ -337,7 +308,8 @@ public abstract class AbstractGenericDao<T> implements Dao<T> {
     protected abstract String buildDeleteQuery(String whereCondition);
 
     /**
-     * Maps a ResultSet row to an entity instance. Must be implemented by subclasses.
+     * Maps a ResultSet row to an entity instance. Must be implemented by
+     * subclasses.
      *
      * @param rs The ResultSet.
      * @return The mapped entity.
@@ -347,7 +319,8 @@ public abstract class AbstractGenericDao<T> implements Dao<T> {
     protected abstract T mapResultSetToEntity(ResultSet rs) throws ReflectiveOperationException, SQLException;
 
     /**
-     * Builds a dynamic SelectBuilder for complex JOIN operations. Must be implemented by subclasses.
+     * Builds a dynamic SelectBuilder for complex JOIN operations. Must be
+     * implemented by subclasses.
      *
      * @return A SelectBuilder instance.
      */

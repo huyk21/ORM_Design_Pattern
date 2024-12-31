@@ -15,4 +15,6 @@ public @interface JoinColumn {
      * Specifies the name of the foreign key column.
      */
     String name();
+
+    boolean nullable();
 }

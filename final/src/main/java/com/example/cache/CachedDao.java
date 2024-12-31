@@ -3,7 +3,7 @@ package com.example.cache;
 import java.sql.SQLException;
 import java.util.Optional;
 
-import com.example.Dao;
+import com.example.entity.Dao;
 
 
 public class CachedDao<T> {

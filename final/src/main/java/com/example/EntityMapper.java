@@ -11,6 +11,8 @@ import com.example.annotation.JoinColumn;
 import com.example.annotation.ManyToOne;
 import com.example.annotation.OneToOne;
 import com.example.connection.DatabaseSession;
+import com.example.entity.Dao;
+import com.example.entity.GenericDaoImpl;
 
 /**
  * Responsible for mapping ResultSet to entity instances.

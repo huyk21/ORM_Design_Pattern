@@ -9,6 +9,7 @@ import com.example.annotation.Column;
 import com.example.annotation.Id;
 import com.example.annotation.JoinColumn;
 import com.example.annotation.ManyToOne;
+import com.example.annotation.OneToOne;
 import com.example.annotation.OneToMany;
 import com.example.annotation.Table;
 
@@ -42,12 +43,11 @@ public class User {
     @Column(name = "updated_at")
     private Timestamp updatedAt;
 
-    @OneToOne
-    @JoinColumn(name = "teacher_id") // Self-referencing (One-to-One)
+    @JoinColumn(name = "teacher_id", nullable = false) // Self-referencing (One-to-One)
     private User teacher;
 
     @ManyToOne
-    @JoinColumn(name = "class_id") // Many-to-One relationship with Classes
+    @JoinColumn(name = "class_id", nullable = false) // Many-to-One relationship with Classes
     private Class classObject;
 
     @OneToMany(mappedBy = "user") // One-to-Many relationship with Subjects

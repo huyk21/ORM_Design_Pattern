@@ -22,7 +22,7 @@ public class Subject {
     private int credit;
 
     @ManyToOne
-    @JoinColumn(name = "user_id") // One-to-Many with Users
+    @JoinColumn(name = "user_id", nullable = false) // One-to-Many with Users
     private User user;
 
     // Getters and Setters
