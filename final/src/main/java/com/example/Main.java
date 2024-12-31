@@ -5,9 +5,15 @@ import java.sql.SQLException;
 import java.util.List;
 import java.util.Optional;
 
+import com.example.annotation.validator.NotNull;
+import com.example.cache.CachedDao;
+import com.example.cache.EvictionPolicy;
+import com.example.cache.LRUEvictionPolicy;
 import com.example.client.User;
 import com.example.connection.DatabaseSession;
 import com.example.connection.MySQLConnectionFactory;
+import com.example.validator.AlphanumericValidator;
+import com.example.validator.ValidationProcessor;
 
 /**
  * Entry point for testing the specific SELECT query using Generic DAO implementation.
@@ -34,8 +40,7 @@ public class Main {
             // Step 4: Begin transaction (optional for SELECT operations, but included for consistency)
             session.beginTransaction();
 
-            // Step 5: Perform the specific SELECT query
-            testSelectOperations(userDao);
+            testValidatorFunction();
 
             // Step 6: Commit transaction
             session.commitTransaction();
@@ -61,6 +66,55 @@ public class Main {
         }
     }
 
+
+    private static void testCache(Dao<User> userDao) throws SQLException, ReflectiveOperationException {
+    System.out.println("Testing Cache...");
+// Create an eviction policy (e.g., LRU with a max size of 3)
+    EvictionPolicy<Integer, User> evictionPolicy = new LRUEvictionPolicy<>(3);
+
+    // Wrap the userDao with CachedDao
+    CachedDao<User> cachedUserDao = new CachedDao<>(userDao, evictionPolicy); // Cache size = 3
+
+    // Fetch user with ID 1 (first time, fetch from DB)
+    Optional<User> user1 = cachedUserDao.findById(13);
+    user1.ifPresent(user -> System.out.println("User fetched: " + user.getUsername()));
+
+    // Fetch user with ID 1 again (should hit cache)
+    Optional<User> cachedUser1 = cachedUserDao.findById(13);
+    cachedUser1.ifPresent(user -> System.out.println("User fetched from cache: " + user.getUsername()));
+
+   
+}
+
+
+private static void testValidatorFunction() {
+        System.out.println("Testing Validator Functionality...");
+
+        // Step 1: Create a test entity
+        User user = new User();
+        user.setUsername("abc"); // Invalid: not alphanumeric
+        
+        user.setEmail(null); // Invalid: null value
+
+        // Step 2: Set up ValidationProcessor and register validators
+        ValidationProcessor<User> processor = new ValidationProcessor<>();
+
+        // Register built-in validators
+        processor.registerValidator(NotNull.class, new AlphanumericValidator<>());
+       
+
+       
+
+        // Step 3: Validate the entity
+        boolean isValid = processor.validate(user);
+
+        // Step 4: Output the validation results
+        if (isValid) {
+            System.out.println("Validation passed!");
+        } else {
+            System.out.println("Validation failed. See error messages above.");
+        }
+    }
     /**
      * Tests the database connection by checking if it's active.
      *
