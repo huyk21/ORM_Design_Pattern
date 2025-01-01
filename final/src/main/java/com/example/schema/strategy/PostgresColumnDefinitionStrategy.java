@@ -1,28 +1,28 @@
-package com.example.mapper;
-
-import com.example.entity.ColumnMetadata;
+package com.example.schema.strategy;
 
 import java.sql.JDBCType;
 
-public class SqlServerColumnDefinitionStrategy implements DBMSColumnDefinitionStrategy {
+import com.example.entity.ColumnMetadata;
+
+public class PostgresColumnDefinitionStrategy implements ColumnDefinitionStrategy {
     @Override
     public String generateColumnDefinition(ColumnMetadata column) {
         StringBuilder def = new StringBuilder();
-
+        
         if (column.isId() && column.getIdAnnotation().autoIncrement()) {
-            def.append("INT IDENTITY(1,1)");
+            def.append("SERIAL");
         } else if (column.getJdbcType() == JDBCType.VARCHAR) {
             def.append("VARCHAR(").append(column.getLength()).append(")");
         } else if (column.getJdbcType() == JDBCType.INTEGER) {
-            def.append("INT");
+            def.append("INTEGER");
         } else if (column.getJdbcType() == JDBCType.TIMESTAMP) {
-            def.append("DATETIME");
+            def.append("TIMESTAMP");
         } else if (column.getJdbcType() == JDBCType.BOOLEAN) {
-            def.append("BIT");
+            def.append("BOOLEAN");
         } else {
             def.append(column.getJdbcType().getName());
         }
-
+        
         return def.toString();
     }
 }

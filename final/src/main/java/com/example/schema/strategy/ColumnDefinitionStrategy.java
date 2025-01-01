@@ -1,7 +1,7 @@
-package com.example.mapper;
+package com.example.schema.strategy;
 
 import com.example.entity.ColumnMetadata;
 
-public interface DBMSColumnDefinitionStrategy {
+public interface ColumnDefinitionStrategy {
     String generateColumnDefinition(ColumnMetadata column);
 }

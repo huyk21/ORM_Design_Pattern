@@ -1,10 +1,10 @@
-package com.example.mapper;
+package com.example.schema.strategy;
 
 import java.sql.JDBCType;
 
 import com.example.entity.ColumnMetadata;
 
-public class MySQLColumnDefinitionStrategy implements DBMSColumnDefinitionStrategy {
+public class MySQLColumnDefinitionStrategy implements ColumnDefinitionStrategy {
     @Override
     public String generateColumnDefinition(ColumnMetadata column) {
         StringBuilder def = new StringBuilder();

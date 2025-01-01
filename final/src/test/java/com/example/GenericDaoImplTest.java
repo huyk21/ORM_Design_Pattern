@@ -161,13 +161,34 @@ public class GenericDaoImplTest {
 
     @Test
     public void testSelect() {
+        var dao = new GenericDaoImpl<User>(session, User.class);
 
+        assertDoesNotThrow(() -> {
+            var users = dao.read("is_active = 1");
+            assertEquals(users.size(), 5);
+        });
     }
 
 
     @Test
-    public void testUpdate() {
-        
+    public void testUpdate() throws SQLException, IllegalAccessException {
+        var dao = new GenericDaoImpl<User>(session, User.class);
+        User user = new User();
+
+        user.setId(3);
+        user.setUsername("student1");
+        user.setFullName("Jane Student Updated");
+        user.setEmail("student1_updated@example.com");
+        user.setPassword("password3_updated");
+        user.setActive(true);
+        user.setDateOfBirth(new Date(1109782800000L));
+
+        assertDoesNotThrow(() -> {
+            dao.update(user, "id = 3");
+            var updatedUser = dao.findById(3).get();
+
+            compareUserTest(updatedUser, user);
+        });
     }
 
     @Test

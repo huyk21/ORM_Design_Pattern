@@ -1,11 +1,6 @@
-package com.example.mapper;
+package com.example.schema.strategy;
 
-import java.sql.JDBCType;
-
-public interface DBMSTypeMapper {
-    String getColumnDefinition(JDBCType jdbcType, Integer length, Integer precision);
-
-    String getAutoIncrementSyntax();
+public interface DDLStrategy {
 
     String getCreateTableSQL(String tableName);
 

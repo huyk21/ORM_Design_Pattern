@@ -6,10 +6,9 @@ import com.example.connection.DatabaseSession;
 import com.example.connection.MySQLConnectionFactory;
 import com.example.connection.PostgreSQLConnectionFactory;
 import com.example.connection.SqlServerConnectionFactory;
-import com.example.mapper.DBMSTypeMapper;
-import com.example.mapper.MySQLTypeMapper;
-import com.example.mapper.PostgresTypeMapper;
-import com.example.mapper.SqlServerTypeMapper;
+import com.example.schema.factory.MySQLStrategyFactory;
+import com.example.schema.factory.PostgreStrategyFactory;
+import com.example.schema.factory.SqlServerStrategyFactory;
 import com.example.client.User;
 import com.example.schema.SchemaManager;
 import org.junit.AfterClass;
@@ -45,7 +44,7 @@ public class SchemaManagerTest {
 
     @Test
     public void testMySQLDDLGeneration() throws SQLException {
-        SchemaManager schemaManager = new SchemaManager(mysqlSession, new MySQLTypeMapper());
+        SchemaManager schemaManager = new SchemaManager(mysqlSession, new MySQLStrategyFactory());
 
         schemaManager.dropTable(Subject.class);
         assertFalse(tableExists(mysqlSession, "subjects"));
@@ -68,7 +67,7 @@ public class SchemaManagerTest {
 
     @Test
     public void testPostgresDDLGeneration() throws SQLException {
-        SchemaManager schemaManager = new SchemaManager(postgresSession, new PostgresTypeMapper());
+        SchemaManager schemaManager = new SchemaManager(postgresSession, new PostgreStrategyFactory());
 
         schemaManager.dropTable(Subject.class);
         assertFalse(tableExists(postgresSession, "subjects"));
@@ -91,7 +90,7 @@ public class SchemaManagerTest {
 
     @Test
     public void testSqlServerDDLGeneration() throws SQLException {
-        SchemaManager schemaManager = new SchemaManager(sqlServerSession, new SqlServerTypeMapper());
+        SchemaManager schemaManager = new SchemaManager(sqlServerSession, new SqlServerStrategyFactory());
 
         schemaManager.dropTable(Subject.class);
         assertFalse(tableExists(sqlServerSession, "subjects"));

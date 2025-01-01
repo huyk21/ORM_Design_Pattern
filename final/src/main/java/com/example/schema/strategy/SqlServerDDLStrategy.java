@@ -1,27 +1,6 @@
-package com.example.mapper;
+package com.example.schema.strategy;
 
-import java.sql.JDBCType;
-
-public class SqlServerTypeMapper implements DBMSTypeMapper {
-    @Override
-    public String getColumnDefinition(JDBCType jdbcType, Integer length, Integer precision) {
-        return switch (jdbcType) {
-            case VARCHAR -> "NVARCHAR(" + (length != null ? length : 255) + ")";
-            case INTEGER -> "INT";
-            case TIMESTAMP -> "DATETIME";
-            case BOOLEAN -> "BIT";
-            case DECIMAL -> "DECIMAL(" + (precision != null ? precision : 10) + ")";
-            case DATE -> "DATE";
-            case TIME -> "TIME";
-            case BINARY -> "VARBINARY(MAX)";
-            default -> jdbcType.getName();
-        };
-    }
-
-    @Override
-    public String getAutoIncrementSyntax() {
-        return "IDENTITY(1,1)";
-    }
+public class SqlServerDDLStrategy implements DDLStrategy {
 
     @Override
     public String getCreateTableSQL(String tableName) {

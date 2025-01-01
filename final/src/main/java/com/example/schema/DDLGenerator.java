@@ -2,12 +2,12 @@ package com.example.schema;
 
 import java.sql.SQLException;
 import com.example.entity.EntityMetadata;
-import com.example.mapper.DBMSTypeMapper;
+import com.example.schema.strategy.DDLStrategy;
 
 public abstract class DDLGenerator {
-    protected final DBMSTypeMapper dbmsTypeMapper;
+    protected final DDLStrategy dbmsTypeMapper;
 
-    public DDLGenerator(DBMSTypeMapper dbmsTypeMapper) {
+    public DDLGenerator(DDLStrategy dbmsTypeMapper) {
         this.dbmsTypeMapper = dbmsTypeMapper;
     }
 
