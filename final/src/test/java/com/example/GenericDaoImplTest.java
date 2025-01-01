@@ -4,6 +4,8 @@ import java.sql.Date;
 import java.sql.SQLException;
 import java.util.ArrayList;
 
+import com.example.connection.PostgreSQLConnectionFactory;
+import com.example.connection.SqlServerConnectionFactory;
 import org.junit.After;
 import org.junit.AfterClass;
 
@@ -31,6 +33,12 @@ public class GenericDaoImplTest {
         MySQLConnectionFactory factory = MySQLConnectionFactory.createDefault(
                 "localhost", "3306", "ORMX", "root", "mysql"
         );
+//        PostgreSQLConnectionFactory factory = PostgreSQLConnectionFactory.createDefault(
+//                "localhost", "5432", "ORMX", "postgres", "postgres");
+
+//        SqlServerConnectionFactory factory = SqlServerConnectionFactory.createDefault(
+//                "localhost", "1433", "ORMX", "sa", "SQLServer123@");
+
         session = new DatabaseSession(factory);
 
         createdUser = new ArrayList<>();
