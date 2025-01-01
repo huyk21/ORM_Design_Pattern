@@ -12,7 +12,7 @@ public class LRUEvictionPolicy<K, V> implements EvictionPolicy<K, V> {
 
     @Override
     public boolean shouldEvict(Map<K, V> cache) {
-        return cache.size() > maxSize;
+        return cache.size() >= maxSize;
     }
 
     @Override

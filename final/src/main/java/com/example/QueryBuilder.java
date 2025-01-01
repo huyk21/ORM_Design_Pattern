@@ -115,8 +115,12 @@ public class QueryBuilder<T> {
      * @return The SQL SELECT query string.
      */
     public String buildReadQuery(String whereCondition) {
+        if (whereCondition == null || whereCondition.trim().isEmpty()) {
+            return "SELECT * FROM " + getTableName();
+        }
         return "SELECT * FROM " + getTableName() + " WHERE " + whereCondition;
     }
+    
 
     /**
      * Builds an UPDATE SQL query.

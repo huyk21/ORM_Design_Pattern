@@ -11,7 +11,8 @@ public class FIFOEvictionPolicy<K, V> implements EvictionPolicy<K, V> {
 
     @Override
     public boolean shouldEvict(Map<K, V> cache) {
-        return cache.size() > maxSize;
+        System.out.println("Checking eviction: Cache size = " + cache.size() + ", Max size = " + maxSize);
+        return cache.size() >= maxSize; // Ensure eviction triggers when cache exceeds maxSize
     }
 
     @Override
