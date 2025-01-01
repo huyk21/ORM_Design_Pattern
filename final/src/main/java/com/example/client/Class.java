@@ -18,7 +18,7 @@ public class Class {
     @Column(name = "name")
     private String name;
 
-    @Column(name = "year")
+    @Column(name = "year", type = JDBCType.INTEGER)
     private int year;
 
     @OneToMany(mappedBy = "classObject") // Back reference for Users
