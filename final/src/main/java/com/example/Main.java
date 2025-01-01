@@ -18,7 +18,8 @@ import com.example.validator.AlphanumericValidator;
 import com.example.validator.ValidationProcessor;
 
 /**
- * Entry point for testing the specific SELECT query using Generic DAO implementation.
+ * Entry point for testing the specific SELECT query using Generic DAO
+ * implementation.
  */
 public class Main {
     private static DatabaseSession session;
@@ -27,19 +28,18 @@ public class Main {
         try {
             // Step 1: Create the MySQL connection factory with your database credentials
             MySQLConnectionFactory factory = MySQLConnectionFactory.createDefault(
-                    "localhost", "3306", "ORMX", "root", "mysql"
-            );
+                    "localhost", "3306", "ORMX", "root", "mysql");
 
             // Step 2: Initialize the database session using the connection factory
             session = new DatabaseSession(factory);
-
             // Step 3: Initialize Generic DAO for User using the refactored GenericDaoImpl
             Dao<User> userDao = new GenericDaoImpl<>(session, User.class);
 
             // Optional: Test database connection
             testDatabaseConnection(session);
 
-            // Step 4: Begin transaction (optional for SELECT operations, but included for consistency)
+            // Step 4: Begin transaction (optional for SELECT operations, but included for
+            // consistency)
             session.beginTransaction();
 
             testValidatorFunction();
@@ -70,34 +70,31 @@ public class Main {
         }
     }
 
-
     private static void testCache(Dao<User> userDao) throws SQLException, ReflectiveOperationException {
-    System.out.println("Testing Cache...");
-// Create an eviction policy (e.g., LRU with a max size of 3)
-    EvictionPolicy<Integer, User> evictionPolicy = new LRUEvictionPolicy<>(3);
+        System.out.println("Testing Cache...");
+        // Create an eviction policy (e.g., LRU with a max size of 3)
+        EvictionPolicy<Integer, User> evictionPolicy = new LRUEvictionPolicy<>(3);
 
-    // Wrap the userDao with CachedDao
-    CachedDao<User> cachedUserDao = new CachedDao<>(userDao, evictionPolicy); // Cache size = 3
+        // Wrap the userDao with CachedDao
+        CachedDao<User> cachedUserDao = new CachedDao<>(userDao, evictionPolicy); // Cache size = 3
 
-    // Fetch user with ID 1 (first time, fetch from DB)
-    Optional<User> user1 = cachedUserDao.findById(13);
-    user1.ifPresent(user -> System.out.println("User fetched: " + user.getUsername()));
+        // Fetch user with ID 1 (first time, fetch from DB)
+        Optional<User> user1 = cachedUserDao.findById(13);
+        user1.ifPresent(user -> System.out.println("User fetched: " + user.getUsername()));
 
-    // Fetch user with ID 1 again (should hit cache)
-    Optional<User> cachedUser1 = cachedUserDao.findById(13);
-    cachedUser1.ifPresent(user -> System.out.println("User fetched from cache: " + user.getUsername()));
+        // Fetch user with ID 1 again (should hit cache)
+        Optional<User> cachedUser1 = cachedUserDao.findById(13);
+        cachedUser1.ifPresent(user -> System.out.println("User fetched from cache: " + user.getUsername()));
 
-   
-}
+    }
 
-
-private static void testValidatorFunction() {
+    private static void testValidatorFunction() {
         System.out.println("Testing Validator Functionality...");
 
         // Step 1: Create a test entity
         User user = new User();
         user.setUsername("abc"); // Invalid: not alphanumeric
-        
+
         user.setEmail(null); // Invalid: null value
 
         // Step 2: Set up ValidationProcessor and register validators
@@ -105,9 +102,6 @@ private static void testValidatorFunction() {
 
         // Register built-in validators
         processor.registerValidator(NotNull.class, new AlphanumericValidator<>());
-       
-
-       
 
         // Step 3: Validate the entity
         boolean isValid = processor.validate(user);
@@ -119,6 +113,7 @@ private static void testValidatorFunction() {
             System.out.println("Validation failed. See error messages above.");
         }
     }
+
     /**
      * Tests the database connection by checking if it's active.
      *
@@ -169,7 +164,8 @@ private static void testValidatorFunction() {
                 Long minUserId = row[1] != null ? ((Number) row[1]).longValue() : null;
                 String username = row[2] != null ? row[2].toString() : "N/A";
 
-                System.out.println("Username: " + username + ", Max User ID: " + maxUserId + ", Min User ID: " + minUserId);
+                System.out.println(
+                        "Username: " + username + ", Max User ID: " + maxUserId + ", Min User ID: " + minUserId);
             }
 
         } catch (Exception e) {
@@ -192,7 +188,8 @@ private static void testValidatorFunction() {
             System.err.println("Failed to close database connection: " + e.getMessage());
         }
     }
-     private static void testCreateOperation(Dao<User> userDao) {
+
+    private static void testCreateOperation(Dao<User> userDao) {
         System.out.println("Testing Create Operation...");
         try {
             User user = new User();
@@ -205,7 +202,7 @@ private static void testValidatorFunction() {
             user.setCreatedAt(null);
             user.setUpdatedAt(null);
             user.setClassObject(null);// Add this if `class_id` exists in your schema
-    
+
             userDao.create(user);
             System.out.println("User created with ID: " + user.getId());
         } catch (Exception e) {
@@ -213,7 +210,6 @@ private static void testValidatorFunction() {
             e.printStackTrace();
         }
     }
-    
 
     private static void testReadOperation(Dao<User> userDao) {
         System.out.println("Testing Read Operation...");
@@ -221,7 +217,8 @@ private static void testValidatorFunction() {
             List<User> users = userDao.read(null); // Read all users
             System.out.println("Retrieved Users:");
             for (User user : users) {
-                System.out.println("ID: " + user.getId() + ", Username: " + user.getUsername() + ", Email: " + user.getEmail());
+                System.out.println(
+                        "ID: " + user.getId() + ", Username: " + user.getUsername() + ", Email: " + user.getEmail());
             }
         } catch (Exception e) {
             System.err.println("Read operation failed: " + e.getMessage());
@@ -231,12 +228,12 @@ private static void testValidatorFunction() {
 
     private static void testUpdateOperation(Dao<User> userDao) throws SQLException, ReflectiveOperationException {
         System.out.println("Testing Update Operation...");
-       
-            Optional<User> user = userDao.findById(13);
-            System.out.println(user.get().getFullName());
-            user.get().setUsername("best");
-            userDao.update(user.get(), "id=13");
-            System.out.println("User updated successfully.");
+
+        Optional<User> user = userDao.findById(13);
+        System.out.println(user.get().getFullName());
+        user.get().setUsername("best");
+        userDao.update(user.get(), "id=13");
+        System.out.println("User updated successfully.");
     }
 
     private static void testDeleteOperation(Dao<User> userDao) {

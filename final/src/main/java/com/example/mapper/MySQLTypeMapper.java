@@ -10,6 +10,10 @@ public class MySQLTypeMapper implements DBMSTypeMapper {
             case INTEGER -> "INT";
             case TIMESTAMP -> "TIMESTAMP";
             case BOOLEAN -> "TINYINT(1)";
+            case DECIMAL -> "DECIMAL(" + (precision != null ? precision : 10) + ")";
+            case DATE -> "DATE";
+            case TIME -> "TIME";
+            case BINARY -> "BLOB";
             default -> jdbcType.getName();
         };
     }
@@ -17,5 +21,31 @@ public class MySQLTypeMapper implements DBMSTypeMapper {
     @Override
     public String getAutoIncrementSyntax() {
         return "AUTO_INCREMENT";
+    }
+
+    @Override
+    public String getCreateTableSQL(String tableName) {
+        return "CREATE TABLE IF NOT EXISTS " + tableName;
+    }
+
+    @Override
+    public String getDropTableSQL(String tableName, boolean cascade) {
+        return "DROP TABLE " + getIfExistsClause() + " " + tableName +
+                (cascade ? " " + getCascadeConstraint() : "");
+    }
+
+    @Override
+    public String getCascadeConstraint() {
+        return "CASCADE";
+    }
+
+    @Override
+    public String getIfExistsClause() {
+        return "IF EXISTS";
+    }
+
+    @Override
+    public String getDropForeignKeySQL(String tableName) {
+        return "SET FOREIGN_KEY_CHECKS = 0";
     }
 }

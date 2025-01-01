@@ -19,13 +19,13 @@ public class User {
     @Id
     @Column(name = "id", type = JDBCType.INTEGER)
     private int id;
-    
+
     @NotNull(message = "Username cannot be null.")
     @Alphanumeric()
-    @Column(name = "username")
+    @Column(name = "username", nullable = false, unique = true)
     private String username;
 
-    @Column(name = "email")
+    @Column(name = "email", nullable = false)
     private String email;
 
     @Column(name = "password")
@@ -34,23 +34,23 @@ public class User {
     @Column(name = "full_name")
     private String fullName;
 
-    @Column(name = "date_of_birth")
+    @Column(name = "date_of_birth", type = JDBCType.DATE)
     private Date dateOfBirth;
 
-    @Column(name = "is_active")
+    @Column(name = "is_active", type = JDBCType.BOOLEAN)
     private boolean isActive;
 
-    @Column(name = "created_at")
+    @Column(name = "created_at", type = JDBCType.TIMESTAMP)
     private Timestamp createdAt;
 
-    @Column(name = "updated_at")
+    @Column(name = "updated_at", type = JDBCType.TIMESTAMP)
     private Timestamp updatedAt;
 
-    @JoinColumn(name = "teacher_id", nullable = false) // Self-referencing (One-to-One)
+    @JoinColumn(name = "teacher_id", nullable = true) // Self-referencing (One-to-One)
     private User teacher;
 
     @ManyToOne
-    @JoinColumn(name = "class_id", nullable = false) // Many-to-One relationship with Classes
+    @JoinColumn(name = "class_id", nullable = true) // Many-to-One relationship with Classes
     private Class classObject;
 
     @OneToMany(mappedBy = "user") // One-to-Many relationship with Subjects
@@ -156,11 +156,11 @@ public class User {
     @Override
     public String toString() {
         return "User{id=" + id +
-               ", username='" + username + '\'' +
-               ", email='" + email + '\'' +
-               ", teacher=" + (teacher != null ? teacher.getUsername() : "null") +
-               ", classObject=" + (classObject != null ? classObject.getName() : "null") +
-               ", subjects=" + (subjects != null ? subjects.size() : 0) +
-               '}';
+                ", username='" + username + '\'' +
+                ", email='" + email + '\'' +
+                ", teacher=" + (teacher != null ? teacher.getUsername() : "null") +
+                ", classObject=" + (classObject != null ? classObject.getName() : "null") +
+                ", subjects=" + (subjects != null ? subjects.size() : 0) +
+                '}';
     }
 }
