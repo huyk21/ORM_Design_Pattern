@@ -22,6 +22,7 @@ public class Cache<K, V> {
             System.out.println("Evicted key: " + evictionKey);
         }
         cache.put(key, value);
+       
     }
 
     // Get an item from the cache

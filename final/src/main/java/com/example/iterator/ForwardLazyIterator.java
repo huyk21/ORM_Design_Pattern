@@ -14,6 +14,7 @@ public class ForwardLazyIterator<T> implements LazyIterator<T> {
         this.resultSet = resultSet;
         this.mapper = mapper;
         this.hasNext = resultSet.next(); // Initialize cursor
+        System.out.println("Initialized iterator: hasNext = " + hasNext); // Debug
     }
 
     @Override
