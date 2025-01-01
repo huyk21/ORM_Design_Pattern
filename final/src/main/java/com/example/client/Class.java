@@ -12,19 +12,19 @@ import com.example.annotation.Table;
 @Table(name = "classes")
 public class Class {
     @Id
-    @Column(name = "id", type = JDBCType.BIGINT)
+    @Column(name = "id", type = JDBCType.INTEGER)
     private int id;
 
     @Column(name = "name")
     private String name;
 
-    @Column(name = "year")
+    @Column(name = "year", type = JDBCType.INTEGER)
     private int year;
 
     @OneToMany(mappedBy = "classObject") // Back reference for Users
     private List<User> users = new ArrayList<>(); // Initialize to avoid null issues
 
-    // Getters and Setters
+    //Getters and Setters
     public int getId() {
         return id;
     }

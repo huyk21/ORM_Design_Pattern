@@ -18,11 +18,11 @@ public class Subject {
     @Column(name = "name")
     private String name;
 
-    @Column(name = "credit")
+    @Column(name = "credit", type = JDBCType.INTEGER)
     private int credit;
 
     @ManyToOne
-    @JoinColumn(name = "user_id") // One-to-Many with Users
+    @JoinColumn(name = "user_id", nullable = true) // One-to-Many with Users
     private User user;
 
     // Getters and Setters

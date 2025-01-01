@@ -4,33 +4,23 @@ import java.util.LinkedHashMap;
 import java.util.Map;
 
 public class Cache<K, V> {
-    private static Cache instance;
     private final Map<K, V> cache;
-    private final int maxSize;
+    private final EvictionPolicy<K, V> evictionPolicy;
 
-    // Private constructor to enforce Singleton
-    private Cache(int maxSize) {
-        this.maxSize = maxSize;
+    public Cache(EvictionPolicy<K, V> evictionPolicy) {
+        this.evictionPolicy = evictionPolicy;
 
-        // Use LinkedHashMap for LRU eviction policy
-        this.cache = new LinkedHashMap<>(maxSize, 0.75f, true) {
-            @Override
-            protected boolean removeEldestEntry(Map.Entry<K, V> eldest) {
-                return size() > Cache.this.maxSize;
-            }
-        };
-    }
-
-    // Public method to get the Singleton instance
-    public static synchronized <K, V> Cache<K, V> getInstance(int maxSize) {
-        if (instance == null) {
-            instance = new Cache<>(maxSize);
-        }
-        return instance;
+        // LinkedHashMap to maintain insertion or access order (for LRU/FIFO)
+        this.cache = new LinkedHashMap<>(16, 0.75f, true);
     }
 
     // Add an item to the cache
     public synchronized void put(K key, V value) {
+        if (evictionPolicy.shouldEvict(cache)) {
+            K evictionKey = evictionPolicy.getEvictionKey(cache);
+            cache.remove(evictionKey);
+            System.out.println("Evicted key: " + evictionKey);
+        }
         cache.put(key, value);
     }
 
@@ -54,4 +44,3 @@ public class Cache<K, V> {
         cache.clear();
     }
 }
-

@@ -11,6 +11,8 @@ import com.example.annotation.JoinColumn;
 import com.example.annotation.ManyToOne;
 import com.example.annotation.OneToMany;
 import com.example.annotation.Table;
+import com.example.annotation.validator.Alphanumeric;
+import com.example.annotation.validator.NotNull;
 
 @Table(name = "users")
 public class User {
@@ -18,10 +20,12 @@ public class User {
     @Column(name = "id", type = JDBCType.INTEGER)
     private int id;
 
-    @Column(name = "username")
+    @NotNull(message = "Username cannot be null.")
+    @Alphanumeric()
+    @Column(name = "username", nullable = false, unique = true)
     private String username;
 
-    @Column(name = "email")
+    @Column(name = "email", nullable = false)
     private String email;
 
     @Column(name = "password")
@@ -30,24 +34,23 @@ public class User {
     @Column(name = "full_name")
     private String fullName;
 
-    @Column(name = "date_of_birth")
+    @Column(name = "date_of_birth", type = JDBCType.DATE)
     private Date dateOfBirth;
 
-    @Column(name = "is_active")
+    @Column(name = "is_active", type = JDBCType.BOOLEAN)
     private boolean isActive;
 
-    @Column(name = "created_at")
+    @Column(name = "created_at", type = JDBCType.TIMESTAMP)
     private Timestamp createdAt;
 
-    @Column(name = "updated_at")
+    @Column(name = "updated_at", type = JDBCType.TIMESTAMP)
     private Timestamp updatedAt;
 
-    @OneToOne
-    @JoinColumn(name = "teacher_id") // Self-referencing (One-to-One)
+    @JoinColumn(name = "teacher_id", nullable = true) // Self-referencing (One-to-One)
     private User teacher;
 
     @ManyToOne
-    @JoinColumn(name = "class_id") // Many-to-One relationship with Classes
+    @JoinColumn(name = "class_id", nullable = true) // Many-to-One relationship with Classes
     private Class classObject;
 
     @OneToMany(mappedBy = "user") // One-to-Many relationship with Subjects
@@ -153,11 +156,11 @@ public class User {
     @Override
     public String toString() {
         return "User{id=" + id +
-               ", username='" + username + '\'' +
-               ", email='" + email + '\'' +
-               ", teacher=" + (teacher != null ? teacher.getUsername() : "null") +
-               ", classObject=" + (classObject != null ? classObject.getName() : "null") +
-               ", subjects=" + (subjects != null ? subjects.size() : 0) +
-               '}';
+                ", username='" + username + '\'' +
+                ", email='" + email + '\'' +
+                ", teacher=" + (teacher != null ? teacher.getUsername() : "null") +
+                ", classObject=" + (classObject != null ? classObject.getName() : "null") +
+                ", subjects=" + (subjects != null ? subjects.size() : 0) +
+                '}';
     }
 }

@@ -3,16 +3,15 @@ package com.example.cache;
 import java.sql.SQLException;
 import java.util.Optional;
 
-import com.example.Dao;
-
+import com.example.entity.Dao;
 
 public class CachedDao<T> {
     private final Dao<T> dao; // Underlying DAO
     private final Cache<Integer, T> cache; // Cache instance
 
-    public CachedDao(Dao<T> dao, int cacheSize) {
+    public CachedDao(Dao<T> dao, EvictionPolicy<Integer, T> evictionPolicy) {
         this.dao = dao;
-        this.cache = Cache.getInstance(cacheSize);
+        this.cache = new Cache<>(evictionPolicy);
     }
 
     // Caching for findById
@@ -28,7 +27,6 @@ public class CachedDao<T> {
         return result;
     }
 
-    // Other DAO methods can be delegated without caching
     public void create(T entity) throws SQLException, IllegalAccessException, NoSuchFieldException {
         dao.create(entity);
     }
@@ -41,4 +39,3 @@ public class CachedDao<T> {
         dao.delete(whereCondition);
     }
 }
-

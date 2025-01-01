@@ -5,6 +5,7 @@ import java.util.ArrayList;
 import java.util.List;
 
 import com.example.annotation.Table;
+import com.example.entity.EntityUtils;
 
 /**
  * Builder class for constructing SQL SELECT queries.
@@ -72,7 +73,7 @@ public class SelectBuilder<T> {
         }
 
         // Determine main table from @Table annotation or class name
-        String mainTable = getMainTable();
+        String mainTable = EntityUtils.getTableName(clazz);
         query.append(" FROM ").append(mainTable).append(" ");
 
         // Append JOIN clauses
@@ -98,28 +99,6 @@ public class SelectBuilder<T> {
         }
 
         return query.toString().trim();
-    }
-
-    private String getMainTable() {
-        Table tableAnnotation = clazz.getAnnotation(Table.class);
-        if (tableAnnotation != null && !tableAnnotation.name().isEmpty()) {
-            return tableAnnotation.name();
-        }
-        return convertToSnakeCase(clazz.getSimpleName());
-    }
-
-    private String convertToSnakeCase(String input) {
-        StringBuilder result = new StringBuilder();
-        for (char c : input.toCharArray()) {
-            if (Character.isUpperCase(c)) {
-                if (result.length() > 0)
-                    result.append("_");
-                result.append(Character.toLowerCase(c));
-            } else {
-                result.append(c);
-            }
-        }
-        return result.toString();
     }
 
     public boolean hasJoins() {

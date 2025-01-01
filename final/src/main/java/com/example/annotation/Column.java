@@ -10,8 +10,15 @@ import java.sql.JDBCType;
 @Target(ElementType.FIELD)
 public @interface Column {
     String name() default "";
+
+    JDBCType type() default JDBCType.VARCHAR;
+
     boolean nullable() default true;
-    int length() default 255;
-    JDBCType type() default JDBCType.OTHER;
+
     boolean unique() default false;
+
+    int length() default 255;
+
+    int precision() default 0;
+
 }
